@@ -1,0 +1,2 @@
+# Dashboard
+GearBot's dashboard
