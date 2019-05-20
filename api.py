@@ -30,12 +30,12 @@ async def get_redis():
     return redis_link
 
 
-@app.get("/")
+@app.get("/api/")
 async def read_root():
     return {"status": "WIP"}
 
 
-@app.post("/crowdin-webhook/", )
+@app.post("/api/crowdin-webhook/", include_in_schema=False)
 async def crowdin_webhook(info: Exported):
     if info.file != "/bot/commands.json": return
     print(f"Crowdin event recieved: {info.event} for file {info.file} in {info.language}")
