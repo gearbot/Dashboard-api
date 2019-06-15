@@ -1,0 +1,8 @@
+{
+    "clientID": 99999,
+    "clientSecret": "",
+    "redirect_uri": "",
+
+    "client_url": "",
+    "session_timeout_length": 7
+}
