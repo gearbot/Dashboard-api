@@ -9,7 +9,6 @@ from fastapi import FastAPI
 
 from Utils import Redis
 
-from uvicorn import loops
 
 with open("config.json") as config_file:
     config = json.load(config_file)
@@ -43,6 +42,7 @@ async def crypto_init():
         if (time() - float(timestamp)) < KEY_CYCLE_LENGTH.total_seconds(): # Make sure the HMAC key stays "fresh". Probably good practice
             HMAC_KEY = stored_hmac_key
         else:
+            print("The old key expired, refreshing it!")
             HMAC_KEY = token_urlsafe(64)
             await redis_db.set("hmackey", f"{time()}tstp{HMAC_KEY}")
 
@@ -53,6 +53,10 @@ async def crypto_init():
 async def session_init():
     app.session_pool = client.ClientSession()
     print("HTTP Client Session initialized")
+
+@app.on_event("shutdown")
+async def session_close(): # Stay tidy
+    await app.session_pool.close()
 
 from routers import crowdin, main, discord
 

@@ -25,13 +25,14 @@ def generate_access_token(data: dict, request: Request, expire_delta: timedelta 
 
     to_encode.update({"exp": expire_dt})
 
-    print(HMAC_KEY)
     jwt_token = jwt.encode(to_encode, request.app.HMAC_KEY, algorithm=ALGORITHM)
-    return base64.urlsafe_b64encode(jwt_token)
 
-async def verify_user(user_token: str):
+    return base64.urlsafe_b64encode(jwt_token).decode("utf8")
+
+async def verify_user(user_token: str, request: Request):
     try:
-        valid_token = jwt.decode(user_token, algorithms=ALGORITHM, verify=True)
+        user_token = base64.urlsafe_b64decode(user_token).decode("utf8")
+        valid_token = jwt.decode(user_token, request.app.HMAC_KEY, algorithms=[ALGORITHM], verify=True)
 
         user_id = valid_token.get("id")
         token = valid_token.get("token")
