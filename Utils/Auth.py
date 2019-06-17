@@ -39,7 +39,7 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
         if "uid" not in request.session:
             raise RuntimeError("No clue who you are mate")
 
-        refresh_token = await pool.get(f"refresh:{request.session['uid']}")
+        refresh_token = await pool.hget(f"tokens:{request.session['uid']}", "refresh_token")
         if refresh_token is None or refresh_token is 0:
             raise RuntimeError("No refresh token available for this user!")
         body["grant_type"] = "refresh_token"
