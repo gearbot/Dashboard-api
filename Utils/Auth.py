@@ -1,6 +1,7 @@
 import time
 
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from Utils import Redis, Configuration
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION
@@ -12,7 +13,7 @@ async def query_endpoint(request, method, endpoint, data=None):
     session_pool = request.app.session_pool
     pool = Redis.get_redis()
     key = f"tokens:{request.session['uid']}"
-    expiry = await pool.hget(key, 'expires_in')
+    expiry = await pool.hget(key, 'expires_at')
     if time.time() + 3 * 24 * 60 * 60  >= int(expiry):
         token = await get_bearer_token(request=request, refresh=True)
     else:
@@ -55,7 +56,7 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
 
         access_token = token_return["access_token"]
         refresh_token = token_return["refresh_token"]
-        expires_in = time.time() + token_return["expires_in"]
+        expires_at = int(time.time() + token_return["expires_in"])
 
     # fetch user info
     headers = {
@@ -69,10 +70,19 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
 
     pipe = pool.pipeline()
     key = f"tokens:{user_id}"
-    pipe.hmset_dict(key, dict(refresh_token=refresh_token, access_token=access_token, expires_in=expires_in))
+    pipe.hmset_dict(key, dict(refresh_token=refresh_token, access_token=access_token, expires_at=expires_at))
     pipe.expire(key, Configuration.SESSION_TIMEOUT_LEN)
     await pipe.execute()
 
     request.session["uid"] = user_id
 
     return access_token
+
+
+def auth_required(handler):
+    async def wrapper(request, *args, **kwargs):
+        if "uid" not in request.session:
+            return JSONResponse({"status": "Unauthorized"}, status_code=401)
+        return await handler(*args, **kwargs)
+    wrapper.__name__ = handler.__name__
+    return wrapper

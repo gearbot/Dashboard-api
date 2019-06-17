@@ -21,11 +21,8 @@ async def test(request: Request):
 async def get_test(request: Request):
     return {"test": request.session["test"]}
 
+@Auth.auth_required
 @router.get("/whoami")
 async def identify_endpoint(request: Request):
-    if "uid" not in request.session:
-        return JSONResponse(dict(status="Unauthorized"), status_code=401)
-    print("Sending info request to Gearbot...")
-    user_info = await Auth.query_endpoint(request, "get", "users/@me")
-    info = await Redis.ask_the_bot("user_info", user_id=request.session["uid"])
-    return info
+    return await Redis.ask_the_bot("user_info", user_id=request.session["uid"])
+
