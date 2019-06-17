@@ -2,4 +2,5 @@ fastapi[all]==0.20.1
 uvicorn==0.7.1
 aioredis==1.2.0
 aiohttp==3.5.4
-result==0.4.0 
+result==0.4.0
+pyjwt==1.7.1

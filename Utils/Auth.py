@@ -1,83 +1,76 @@
-from datetime import datetime, timedelta
-import base64
-
-import jwt
-from jwt import exceptions, PyJWTError
-
 from starlette.requests import Request
 
-from result import Ok, Err
-
-from api import API_LOCATION, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, SESSION_TIMEOUT_LEN
-from api import HMAC_KEY
-
-from Utils import Redis
-
-ALGORITHM = "HS256"
-
-# This will return a Base64 encoded version of the token by default
-def generate_access_token(data: dict, request: Request, expire_delta: timedelta = None):
-    to_encode = data.copy()
-    if expire_delta:
-        expire_dt = datetime.utcnow() + expire_delta
-    else:
-        expire_dt = datetime.utcnow() + timedelta(days = SESSION_TIMEOUT_LEN)
-
-    to_encode.update({"exp": expire_dt})
-
-    jwt_token = jwt.encode(to_encode, request.app.HMAC_KEY, algorithm=ALGORITHM)
-
-    return base64.urlsafe_b64encode(jwt_token).decode("utf8")
-
-async def verify_user(user_token: str, request: Request):
-    try:
-        user_token = base64.urlsafe_b64decode(user_token).decode("utf8")
-        valid_token = jwt.decode(user_token, request.app.HMAC_KEY, algorithms=[ALGORITHM], verify=True)
-
-        user_id = valid_token.get("id")
-        token = valid_token.get("token")
-    except PyJWTError as ex:
-        if ex == exceptions.ExpiredSignature:
-            return Err("The token expired")
-        else:
-            return Err("The token was tampered with!")
-
-    user = {
-        "id": user_id,
-        "token": token
-    }
-
-    return Ok(user)
+from Utils import Redis, Configuration
+from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION
 
 
-async def get_bearer_token(auth_code: str, refresh: bool, user_id: int, request):
+async def query_endpoint(request, method, endpoint, data=None):
+    if "uid" not in request.session:
+        raise RuntimeError("No clue who this is")
     session_pool = request.app.session_pool
-    
-    # TODO: Proper token refresh support
-    if refresh:
-        # UserID can *only* be accessed inside this block
-        #redis = Redis.get_redis(1)
-        #refresh_token = await redis.get(f"drefreshtoken:{user_id}")
-        # Some logic here....
-        pass
+    pool = Redis.get_redis()
+    key = f"tokens:{request.session['uid']}"
+    expiry = await pool.hget(key, 'expires_in')
+    if int(expiry) < 3 * 24 * 60 * 60:
+        token = await get_bearer_token(request=request, refresh=True)
+    else:
+        token = await pool.hget(key, 'access_token')
+    headers = dict(Authorization= f"Bearer {token}")
+    async with getattr(session_pool, method)(f"{API_LOCATION}/{endpoint}", data=data, headers=headers) as response:
+        return await response.json()
 
-    print("Fetching bearer token...")
 
-    token_fetch_body = {
+async def get_bearer_token(request: Request, refresh: bool = False, auth_code: str = ""):
+    session_pool = request.app.session_pool
+    pool = Redis.get_redis()
+
+    body = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
-        "grant_type": "refresh_token" if refresh else "authorization_code",
         "code": auth_code,
         "redirect_uri": REDIRECT_URI,
         "scope": "identify guilds"
     }
 
-    async with session_pool.post(f"{API_LOCATION}/oauth2/token",
-        data = token_fetch_body) as token_resp:
+    if refresh:
+        # do we know who this is supposed to be?
+        if "uid" not in request.session:
+            raise RuntimeError("No clue who you are mate")
 
+        refresh_token = await pool.get(f"refresh:{request.session['uid']}")
+        if refresh_token is None or refresh_token is 0:
+            raise RuntimeError("No refresh token available for this user!")
+        body["grant_type"] = "refresh_token"
+        body["refresh_token"] = refresh_token
+
+    else:
+        body["grant_type"] = "authorization_code"
+
+    print("Fetching token...")
+
+    async with session_pool.post(f"{API_LOCATION}/oauth2/token", data=body) as token_resp:
         token_return = await token_resp.json()
 
         access_token = token_return["access_token"]
         refresh_token = token_return["refresh_token"]
+        expires_in = token_return["expires_in"]
 
-        return (access_token, refresh_token)
+    # fetch user info
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    async with session_pool.get(f"{API_LOCATION}/users/@me", headers=headers) as resp:
+        user_info = await resp.json()
+        user_id = user_info["id"]
+
+    # store refresh token in redis
+
+    pipe = pool.pipeline()
+    key = f"tokens:{user_id}"
+    pipe.hmset_dict(key, dict(refresh_token=refresh_token, access_token=access_token, expires_in=expires_in))
+    pipe.expire(key, Configuration.SESSION_TIMEOUT_LEN)
+    await pipe.execute()
+
+    request.session["uid"] = user_id
+
+    return access_token

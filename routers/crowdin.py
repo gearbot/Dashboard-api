@@ -24,7 +24,7 @@ class Exported(BaseModel):
 async def crowdin_webhook(info: Exported):
     if info.file != "/bot/commands.json": return
     print(f"Crowdin event recieved: {info.event} for file {info.file} in {info.language}")
-    link = await Redis.get_redis(0)
+    link = Redis.get_redis()
     await link.publish_json("dash-bot-messages", 
         dict(type="crowdin_webhook",
             info=dict(

@@ -11,37 +11,21 @@ from Utils import Auth, Redis
 async def read_root():
     return {"status": "WIP"}
 
+
+@router.get("/test")
+async def test(request: Request):
+    request.session["test"] = "testing"
+    return {"status": "TESTING"}
+
+@router.get("/test2")
+async def get_test(request: Request):
+    return {"test": request.session["test"]}
+
 @router.get("/whoami")
-async def identify_endpoint(authtoken: str = Cookie(None), request: Request=None):
-    print(authtoken)
-    bad_auth_resp = JSONResponse({ "status": "INVALID AUTH" }, status_code=401)
-    if authtoken == None:
-        # Handle this on the frontend via sending them to login
-        return bad_auth_resp
-    user = await Auth.verify_user(authtoken, request)
-
-    if user.is_err():
-        return bad_auth_resp
-    else:
-        user = user.unwrap()
-        user_id = user["id"]
-        token = user["token"]
-
+async def identify_endpoint(request: Request):
+    if "uid" not in request.session:
+        return JSONResponse(dict(status="Unauthorized"), status_code=401)
     print("Sending info request to Gearbot...")
-
-    data_link = await Redis.get_redis(0)
-    recv = await data_link.subscribe("bot-dash-messages")
-    recv_channel = recv[0]
-
-    await data_link.publish_json("dash-bot-messages", dict(type="user_info",
-        uid = user_id
-    ))
-
-    while (await recv_channel.wait_message()):
-        user_info = await recv_channel.get_json()
-        if user_info == None:
-            print("Invalid user was requested")
-            return bad_auth_resp
-        else:
-            print(user_info)
-            return { "status": "VALIDATED" }
+    user_info = await Auth.query_endpoint(request, "get", "users/@me")
+    info = await Redis.ask_the_bot("user_info", user_id=request.session["uid"])
+    return info
