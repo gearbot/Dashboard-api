@@ -1,3 +1,5 @@
+import time
+
 from starlette.requests import Request
 
 from Utils import Redis, Configuration
@@ -11,7 +13,7 @@ async def query_endpoint(request, method, endpoint, data=None):
     pool = Redis.get_redis()
     key = f"tokens:{request.session['uid']}"
     expiry = await pool.hget(key, 'expires_in')
-    if int(expiry) < 3 * 24 * 60 * 60:
+    if time.time() + 3 * 24 * 60 * 60  >= int(expiry):
         token = await get_bearer_token(request=request, refresh=True)
     else:
         token = await pool.hget(key, 'access_token')
@@ -53,7 +55,7 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
 
         access_token = token_return["access_token"]
         refresh_token = token_return["refresh_token"]
-        expires_in = token_return["expires_in"]
+        expires_in = time.time() + token_return["expires_in"]
 
     # fetch user info
     headers = {
