@@ -17,6 +17,7 @@ async def session_init():
     app.session_pool = client.ClientSession()
     print("HTTP Client Session initialized")
     await Redis.initialize()
+    print("Redis connections initialized")
 
 
 @app.on_event("shutdown")

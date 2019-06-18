@@ -14,8 +14,8 @@ def get_redis():
 
 async def initialize():
     global storage_pool, message_pool
-    storage_pool = await aioredis.create_redis_pool(("192.168.0.128", 6379), encoding="utf-8", db=0)
-    message_pool = await aioredis.create_redis_pool(("192.168.0.128", 6379), encoding="utf-8", db=0, maxsize=2)
+    storage_pool = await aioredis.create_redis_pool(("localhost", 6379), encoding="utf-8", db=0)
+    message_pool = await aioredis.create_redis_pool(("localhost", 6379), encoding="utf-8", db=0, maxsize=2)
     loop = asyncio.get_running_loop()
     loop.create_task(receiver())
 
@@ -26,16 +26,16 @@ async def receiver():
     while await recv_channel.wait_message():
         reply = await recv_channel.get_json()
         replies[reply["uid"]] = reply["reply"]
-        await asyncio.sleep(5)  # if nobody retreived it after 5s something is already broken, no need to leak as well
+        await asyncio.sleep(5)  # If nobody retreived it after 5s something is already broken, no need to leak as well
         if reply["uid"] in replies:
             del replies[reply["uid"]]
 
 
 async def ask_the_bot(type, **kwargs):
-    # attach uid for tracking and send to the bot
+    # Attach uid for tracking and send to the bot
     uid = str(uuid.uuid4())
     await message_pool.publish_json("dash-bot-messages", dict(type=type, uid=uid, **kwargs))
-    # wait for a reply for up to 60 seconds
+    # Wait for a reply for up to 6 seconds
     waited = 0
     while uid not in replies:
         await asyncio.sleep(0.1)

@@ -24,5 +24,21 @@ async def get_test(request: Request):
 @Auth.auth_required
 @router.get("/whoami")
 async def identify_endpoint(request: Request):
-    return await Redis.ask_the_bot("user_info", user_id=request.session["uid"])
+    if request.session == {}:
+        return Auth.bad_auth_resp
+    return await Redis.ask_the_bot("user_info", user_id=request.session["user_id"])
 
+@Auth.auth_required
+@router.get("/guilds")
+async def guild_list_endpoint(request: Request):
+    session_pool  = request.app.session_pool
+
+    # Grab the user's guilds from Discord
+    guilds_list = await Auth.query_endpoint(request, "get", "/users/@me/guilds")
+
+    formatted_guild_list = []
+
+    for guild in guilds_list:
+        formatted_guild_list.append(guild["id"])
+
+    return await Redis.ask_the_bot("guild_perms", user_id=request.session["user_id"], guild_list=formatted_guild_list)

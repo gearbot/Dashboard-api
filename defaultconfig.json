@@ -4,5 +4,6 @@
     "redirect_uri": "",
 
     "client_url": "",
-    "session_timeout_length": 7
+    "session_timeout_length": 7,
+    "session_key": ""
 }
