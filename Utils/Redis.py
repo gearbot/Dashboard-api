@@ -14,8 +14,8 @@ def get_redis():
 
 async def initialize():
     global storage_pool, message_pool
-    storage_pool = await aioredis.create_redis_pool(("localhost", 6379), encoding="utf-8", db=0)
-    message_pool = await aioredis.create_redis_pool(("localhost", 6379), encoding="utf-8", db=0, maxsize=2)
+    storage_pool = await aioredis.create_redis_pool(("192.168.0.128", 6379), encoding="utf-8", db=0)
+    message_pool = await aioredis.create_redis_pool(("192.168.0.128", 6379), encoding="utf-8", db=0, maxsize=2)
     loop = asyncio.get_running_loop()
     loop.create_task(receiver())
 

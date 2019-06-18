@@ -20,4 +20,4 @@ async def discord_oauth_redir():
 @router.get("/callback")
 async def handle_callback(code: str, request: Request):
     await Auth.get_bearer_token(request=request, auth_code=code)
-    return RedirectResponse(CLIENT_URL)
+    return RedirectResponse(f"{CLIENT_URL}/pleaseclosethispopupformektxh", status_code=307)

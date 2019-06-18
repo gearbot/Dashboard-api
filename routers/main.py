@@ -2,10 +2,10 @@ from fastapi import APIRouter, Cookie
 from starlette.responses import JSONResponse
 from starlette.requests import Request
 
-
 router = APIRouter()
 
 from Utils import Auth, Redis
+
 
 @router.get("/")
 async def read_root():
@@ -17,22 +17,29 @@ async def test(request: Request):
     request.session["test"] = "testing"
     return {"status": "TESTING"}
 
+
 @router.get("/test2")
 async def get_test(request: Request):
     return {"test": request.session["test"]}
 
-@Auth.auth_required
+
 @router.get("/whoami")
+@Auth.auth_required
 async def identify_endpoint(request: Request):
-    if request.session == {}:
-        return Auth.bad_auth_resp
     return await Redis.ask_the_bot("user_info", user_id=request.session["user_id"])
 
-@Auth.auth_required
-@router.get("/guilds")
-async def guild_list_endpoint(request: Request):
-    session_pool  = request.app.session_pool
 
+@router.get("/logout")
+@Auth.auth_required
+async def logout(request: Request):
+    for k in ["user_id", "refresh_token", "access_token", "expires_at"]:
+        del request.session[k]
+    return JSONResponse(dict(status="Success"))
+
+
+@router.get("/guilds")
+@Auth.auth_required
+async def guild_list_endpoint(request: Request):
     # Grab the user's guilds from Discord
     guilds_list = await Auth.query_endpoint(request, "get", "/users/@me/guilds")
 
