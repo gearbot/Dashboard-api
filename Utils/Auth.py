@@ -1,12 +1,10 @@
 import time
 
 from starlette.requests import Request
-from starlette.responses import JSONResponse
 
-from Utils import Redis, Configuration
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION
-
-bad_auth_resp = JSONResponse({"status": "Unauthorized"}, status_code=401)
+from Utils.Redis import FailedException, UnauthorizedException
+from Utils.Responses import unauthorized_response, failed_response
 
 
 async def query_endpoint(request, method, endpoint, data=None):
@@ -75,9 +73,30 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
 # Currently, nothing ever hits this decorator, so it does nothing.
 def auth_required(handler):
     async def wrapper(request: Request):
-        if any(k not in request.session for k in ["user_id", "refresh_token", "access_token", "expires_at"]):  # Either the cookie expired or was tampered with
-            return bad_auth_resp
-        return await handler(request)
+        async def h(): await handler(request)
+
+        return await handle_it(request, h)
 
     wrapper.__name__ = handler.__name__
     return wrapper
+
+
+def if_authorized(handler):
+    async def wrapper(request: Request):
+        return await handle_it(request, handler)
+
+    wrapper.__name__ = handler.__name__
+    return wrapper
+
+
+async def handle_it(request, handler):
+    if any(k not in request.session for k in ["user_id", "refresh_token", "access_token",
+                                              "expires_at"]):  # Either the cookie expired or was tampered with
+        return unauthorized_response
+    try:
+        response = await handler()
+    except FailedException:
+        response = failed_response
+    except UnauthorizedException:
+        response = unauthorized_response
+    return response

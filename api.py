@@ -9,7 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from Utils import Configuration, Redis
-from routers import crowdin, main, discord
+from routers import crowdin, main, discord, guilds
 
 app = FastAPI()
 
@@ -32,8 +32,6 @@ app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN,
 app.add_middleware(CORSMiddleware, allow_origins=Configuration.CORS_ORGINS, allow_credentials=True, allow_methods=['*'])
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=Configuration.TRUSTED_HOSTS)
 app.include_router(main.router, prefix="/api", responses={404: {"description": "Not found"}})
-app.include_router(discord.router, prefix="/api/discord", responses={404: {"description": "Not found"}})
-app.include_router(crowdin.router, prefix="/api/crowdin-webhook", responses={404: {"description": "Not found"}})
 
 import uvicorn
 

@@ -11,7 +11,10 @@ SESSION_TIMEOUT_LEN: int = config["session_timeout_length"] * 60*60*24
 SESSION_KEY: str = config["session_key"]
 API_LOCATION = "https://discordapp.com/api/v6"
 
-__REDIS_PARTS = config["redis_address"]
-REDIS_ADDRESS = (__REDIS_PARTS[0], __REDIS_PARTS[1])
+r = config["redis"]
+if r.get("socket", None) is None:
+    REDIS_ADDRESS = (r["host"], r["port"])
+else:
+    REDIS_ADDRESS = r["socket"]
 CORS_ORGINS: list = config["cors_orgins"]
 TRUSTED_HOSTS: list = config["trusted_hosts"]

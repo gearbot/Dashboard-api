@@ -5,11 +5,20 @@ import aioredis
 
 from Utils.Configuration import REDIS_ADDRESS
 
-from time import perf_counter_ns
-
 storage_pool = None
 message_pool = None
 replies = dict()
+
+
+class FailedException(Exception):
+    pass
+
+
+class UnauthorizedException(Exception):
+    pass
+
+class NoReplyException(Exception):
+    pass
 
 
 def get_redis():
@@ -29,7 +38,10 @@ async def receiver():
     recv_channel = recv[0]
     while await recv_channel.wait_message():
         reply = await recv_channel.get_json()
-        replies[reply["uid"]] = reply["reply"]
+        replies[reply["uid"]] = {
+            "state": reply["state"],
+            "reply": reply.get("reply", {})
+        }
         await asyncio.sleep(5)  # If nobody retreived it after 5s something is already broken, no need to leak as well
         if reply["uid"] in replies:
             del replies[reply["uid"]]
@@ -37,16 +49,9 @@ async def receiver():
 
 async def ask_the_bot(type, **kwargs):
     # Attach uid for tracking and send to the bot
-    start_time = perf_counter_ns()
     uid = str(uuid.uuid4())
     await message_pool.publish_json("dash-bot-messages", dict(type=type, uid=uid, **kwargs))
     # Wait for a reply for up to 6 seconds
-
-    finish_time = perf_counter_ns()
-    final_time = (finish_time - start_time) / 1000000
-    print("It took this long to send the message: " + str(final_time))
-
-    start_time = perf_counter_ns()
 
     waited = 0
     while uid not in replies:
@@ -57,9 +62,10 @@ async def ask_the_bot(type, **kwargs):
 
     r = replies[uid]
     del replies[uid]
-    finish_time = perf_counter_ns()
 
-    final_time = ((finish_time - start_time) / 1000000) - 12000
-    print("It took this long for us to get a reply: " + str(final_time))
+    if r["state"] == "Failed":
+        raise FailedException()
+    if r["state"] == "Unauthorized":
+        raise UnauthorizedException()
 
-    return r
+    return r["reply"]
