@@ -41,11 +41,12 @@ async def logout(request: Request):
 @Auth.auth_required
 async def guild_list_endpoint(request: Request):
     # Grab the user's guilds from Discord
+    print("getting guild info")
     guilds_list = await Auth.query_endpoint(request, "get", "/users/@me/guilds")
 
     formatted_guild_list = []
 
     for guild in guilds_list:
         formatted_guild_list.append(guild["id"])
-
+    print("asking the bot")
     return await Redis.ask_the_bot("guild_perms", user_id=request.session["user_id"], guild_list=formatted_guild_list)
