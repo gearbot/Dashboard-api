@@ -22,6 +22,6 @@ async def discord_oauth_redir():
 @router.get("/callback")
 async def handle_callback(code: str, state: str, request: Request, state_key: str = Cookie(None)):
     if state != state_key:
-        return RedirectResponse(f"https://i.imgur.com/vN5jG9r.mp4")
+        return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")
     await Auth.get_bearer_token(request=request, auth_code=code)
     return RedirectResponse(f"{CLIENT_URL}/pleaseclosethispopupformektxh", status_code=307)
