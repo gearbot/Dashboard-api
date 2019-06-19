@@ -5,5 +5,13 @@
 
     "client_url": "",
     "session_timeout_length": 7,
-    "session_key": ""
+    "session_key": "",
+
+    "redis_address": ["localhost", 6379],
+    "cors_orgins": ["http://localhost:8080"],
+    "trusted_hosts": [
+        "localhost", 
+        "localhost:8080",
+        "localhost:5000"
+    ]
 }

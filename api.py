@@ -25,11 +25,12 @@ async def session_init():
 @app.on_event("shutdown")
 async def session_close():  # Stay tidy
     await app.session_pool.close()
+    await Redis.get_redis().close()
 
 
 app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
-app.add_middleware(CORSMiddleware, allow_origins=['http://localhost:8080'], allow_credentials=True, allow_methods=['*'])
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', 'localhost:8080', 'localhost:5000'])
+app.add_middleware(CORSMiddleware, allow_origins=Configuration.CORS_ORGINS, allow_credentials=True, allow_methods=['*'])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=Configuration.TRUSTED_HOSTS)
 app.include_router(main.router, prefix="/api", responses={404: {"description": "Not found"}})
 app.include_router(discord.router, prefix="/api/discord", responses={404: {"description": "Not found"}})
 app.include_router(crowdin.router, prefix="/api/crowdin-webhook", responses={404: {"description": "Not found"}})
