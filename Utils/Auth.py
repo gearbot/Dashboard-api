@@ -1,10 +1,11 @@
 import time
 
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION
-from Utils.Redis import FailedException, UnauthorizedException
-from Utils.Responses import unauthorized_response, failed_response
+from Utils.Redis import FailedException, UnauthorizedException, NoReplyException
+from Utils.Responses import unauthorized_response, failed_response, no_reply_response
 
 
 async def query_endpoint(request, method, endpoint, data=None):
@@ -73,7 +74,7 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
 # Currently, nothing ever hits this decorator, so it does nothing.
 def auth_required(handler):
     async def wrapper(request: Request):
-        async def h(): await handler(request)
+        async def h(): return await handler(request)
 
         return await handle_it(request, h)
 
@@ -94,9 +95,11 @@ async def handle_it(request, handler):
                                               "expires_at"]):  # Either the cookie expired or was tampered with
         return unauthorized_response
     try:
-        response = await handler()
+        response = JSONResponse(await handler())
     except FailedException:
         response = failed_response
     except UnauthorizedException:
         response = unauthorized_response
+    except NoReplyException:
+        response = no_reply_response
     return response
