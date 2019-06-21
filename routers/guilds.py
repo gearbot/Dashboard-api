@@ -1,6 +1,7 @@
 from enum import Enum
 from fastapi import APIRouter
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from Utils import Auth, Redis
 from Utils.Responses import bad_request_response
@@ -49,7 +50,11 @@ async def guild_stats_endpoint(request: Request, guild_id: int):
 @router.get("/{guild_id}/config/{section}")
 async def get_config_section(request: Request, guild_id: int, section: str):
     async def handler():
-        if guild_id is None or section is None or ConfigSection[section] is None:
+        if guild_id is None or section is None:
             return bad_request_response
-        return await Redis.ask_the_bot("get_config_section", guild_id=guild_id, section=ConfigSection[section].value, user_id=request.session["user_id"])
+        try:
+            s = ConfigSection[section]
+            return await Redis.ask_the_bot("get_config_section", guild_id=guild_id, section=s.value, user_id=request.session["user_id"])
+        except KeyError:
+            return JSONResponse({"status": "unknown section"}, status_code=400)
     return await Auth.handle_it(request, handler)
