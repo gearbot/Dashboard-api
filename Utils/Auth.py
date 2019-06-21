@@ -95,7 +95,9 @@ async def handle_it(request, handler):
                                               "expires_at"]):  # Either the cookie expired or was tampered with
         return unauthorized_response
     try:
-        response = JSONResponse(await handler())
+        response = await handler()
+        if not isinstance(response, JSONResponse):
+            response = JSONResponse(response)
     except FailedException:
         response = failed_response
     except UnauthorizedException:
