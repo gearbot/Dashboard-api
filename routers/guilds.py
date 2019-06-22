@@ -1,5 +1,5 @@
 from enum import Enum
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -48,7 +48,7 @@ async def guild_stats_endpoint(request: Request, guild_id: int):
     return await Auth.handle_it(request, handler)
 
 
-@router.get("/{guild_id}/config/{section}/get")
+@router.get("/{guild_id}/config/{section}")
 async def get_config_section(request: Request, guild_id: int, section: str):
     async def handler():
         if guild_id is None or section is None:
@@ -66,7 +66,7 @@ async def get_config_section(request: Request, guild_id: int, section: str):
     return await Auth.handle_it(request, handler)
 
 
-@router.patch("/{guild_id}/config/{section}/update")
+@router.patch("/{guild_id}/config/{section}")
 async def update_config_section(request: Request, guild_id: int, section: str, config_values: dict):
     async def handler():
         if guild_id is None or section is None:
