@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from Utils import Auth, Redis
-from Utils.Responses import bad_request_response
+from Utils.Responses import bad_request_response, unknown_config_response
 
 router = APIRouter()
 
@@ -35,10 +35,11 @@ async def guild_stats_endpoint(request: Request, guild_id: int):
         if guild_id is None:
             return bad_request_response
 
-        server_info = await Redis.ask_the_bot("guild_info",
-                                              user_id=request.session["user_id"],
-                                              guild_id=guild_id
-                                              )
+        server_info = await Redis.ask_the_bot(
+            "guild_info",
+            user_id=request.session["user_id"],
+            guild_id=guild_id
+        )
 
         print(server_info)
 
@@ -47,14 +48,39 @@ async def guild_stats_endpoint(request: Request, guild_id: int):
     return await Auth.handle_it(request, handler)
 
 
-@router.get("/{guild_id}/config/{section}")
+@router.get("/{guild_id}/config/{section}/get")
 async def get_config_section(request: Request, guild_id: int, section: str):
     async def handler():
         if guild_id is None or section is None:
             return bad_request_response
         try:
             s = ConfigSection[section]
-            return await Redis.ask_the_bot("get_config_section", guild_id=guild_id, section=s.value, user_id=request.session["user_id"])
+            return await Redis.ask_the_bot(
+                "get_config_section", 
+                guild_id=guild_id, 
+                section=s.value, 
+                user_id=request.session["user_id"]
+            )
         except KeyError:
-            return JSONResponse({"status": "unknown section"}, status_code=400)
+            return unknown_config_response
+    return await Auth.handle_it(request, handler)
+
+
+@router.patch("/{guild_id}/config/{section}/update")
+async def update_config_section(request: Request, guild_id: int, section: str, config_values: dict):
+    async def handler():
+        if guild_id is None or section is None:
+            return bad_request_response
+        try:
+            s = ConfigSection[section]
+            return await Redis.ask_the_bot(
+                "update_config_section", 
+                guild_id=guild_id, 
+                section=s.value,
+                modified_values=config_values,
+                user_id=request.session["user_id"]
+            )
+        except KeyError:
+            return unknown_config_response
+    
     return await Auth.handle_it(request, handler)
