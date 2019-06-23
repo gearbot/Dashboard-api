@@ -25,10 +25,10 @@ async def get_test(request: Request):
 
 
 @router.get("/logout")
-@Auth.auth_required
 async def logout(request: Request):
     for k in ["user_id", "refresh_token", "access_token", "expires_at"]:
-        del request.session[k]
+        if k in request:
+            del request.session[k]
     return JSONResponse(dict(status="Success"))
 
 

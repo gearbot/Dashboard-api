@@ -3,7 +3,7 @@ import time
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION
+from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION, ALLOWED_USERS
 from Utils.Redis import FailedException, UnauthorizedException, NoReplyException
 from Utils.Responses import unauthorized_response, failed_response, no_reply_response
 
@@ -62,6 +62,9 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
     async with session_pool.get(f"{API_LOCATION}/users/@me", headers=headers) as resp:
         user_info = await resp.json()
         user_id = user_info["id"]
+
+    if int(user_id) not in ALLOWED_USERS:
+        return None
 
     request.session["user_id"] = user_id
     request.session["refresh_token"] = refresh_token

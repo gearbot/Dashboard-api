@@ -10,6 +10,7 @@ CLIENT_URL: str = config["client_url"]
 SESSION_TIMEOUT_LEN: int = config["session_timeout_length"] * 60*60*24
 SESSION_KEY: str = config["session_key"]
 API_LOCATION = "https://discordapp.com/api/v6"
+ALLOWED_USERS = config["allowed_users"]
 
 r = config["redis"]
 if r.get("socket", None) is None:
