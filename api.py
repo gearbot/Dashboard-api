@@ -30,7 +30,6 @@ async def session_close():  # Stay tidy
 
 app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
 app.add_middleware(CORSMiddleware, allow_origins=Configuration.CORS_ORGINS, allow_credentials=True, allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'], allow_headers =['*'])
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=Configuration.TRUSTED_HOSTS)
 app.include_router(main.router, prefix="/api", responses={404: {"description": "Not found"}})
 
 import uvicorn
