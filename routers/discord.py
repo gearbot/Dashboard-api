@@ -24,4 +24,4 @@ async def handle_callback(code: str, state: str, request: Request, state_key: st
     if state != state_key:
         return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")
     await Auth.get_bearer_token(request=request, auth_code=code)
-    return RedirectResponse(f"{CLIENT_URL}/pleaseclosethispopupformektxh", status_code=307)
+    return RedirectResponse(f"{CLIENT_URL}", status_code=307)
