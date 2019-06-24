@@ -26,9 +26,7 @@ async def get_test(request: Request):
 
 @router.get("/logout")
 async def logout(request: Request):
-    for k in ["user_id", "refresh_token", "access_token", "expires_at"]:
-        if k in request:
-            del request.session[k]
+    request.session.clear()
     return JSONResponse(dict(status="Success"))
 
 
