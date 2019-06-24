@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION, ALLOWED_USERS
-from Utils.Redis import FailedException, UnauthorizedException, NoReplyException
+from Utils.Redis import FailedException, UnauthorizedException, NoReplyException, BadRequestException
 from Utils.Responses import unauthorized_response, failed_response, no_reply_response
 
 
@@ -107,4 +107,6 @@ async def handle_it(request, handler):
         response = unauthorized_response
     except NoReplyException:
         response = no_reply_response
+    except BadRequestException as ex:
+        response = JSONResponse(dict(status="Bad request", errors=ex.errors), status_code=400)
     return response

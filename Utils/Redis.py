@@ -17,8 +17,14 @@ class FailedException(Exception):
 class UnauthorizedException(Exception):
     pass
 
+
 class NoReplyException(Exception):
     pass
+
+
+class BadRequestException(Exception):
+    def __init__(self, errors) -> None:
+        self.errors = errors
 
 
 def get_redis():
@@ -67,5 +73,7 @@ async def ask_the_bot(type, **kwargs):
         raise FailedException()
     if r["state"] == "Unauthorized":
         raise UnauthorizedException()
+    if r["state"] == "Bad request":
+        raise BadRequestException(r["errors"])
 
     return r["reply"]

@@ -40,9 +40,6 @@ async def guild_stats_endpoint(request: Request, guild_id: int):
             user_id=request.session["user_id"],
             guild_id=guild_id
         )
-
-        print(server_info)
-
         return server_info
 
     return await Auth.handle_it(request, handler)
