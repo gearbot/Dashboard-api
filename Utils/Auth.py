@@ -3,13 +3,15 @@ import time
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from aiohttp import client
+
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION, ALLOWED_USERS
 from Utils.Redis import FailedException, UnauthorizedException, NoReplyException, BadRequestException
 from Utils.Responses import unauthorized_response, failed_response, no_reply_response
 
 
 async def query_endpoint(request, method, endpoint, data=None):
-    session_pool = request.app.session_pool
+    session_pool = client.ClientSession()
     expiry = request.session["expires_at"]
     if time.time() + 3 * 24 * 60 * 60 >= int(expiry):
         token = await get_bearer_token(request=request, refresh=True)
@@ -17,11 +19,12 @@ async def query_endpoint(request, method, endpoint, data=None):
         token = request.session['access_token']
     headers = dict(Authorization=f"Bearer {token}")
     async with getattr(session_pool, method)(f"{API_LOCATION}/{endpoint}", data=data, headers=headers) as response:
+        await session_pool.close()
         return await response.json()
 
 
 async def get_bearer_token(request: Request, refresh: bool = False, auth_code: str = ""):
-    session_pool = request.app.session_pool
+    session_pool = client.ClientSession()
 
     body = {
         "client_id": CLIENT_ID,
@@ -62,6 +65,8 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
     async with session_pool.get(f"{API_LOCATION}/users/@me", headers=headers) as resp:
         user_info = await resp.json()
         user_id = user_info["id"]
+    
+    await session_pool.close()
 
     if int(user_id) not in ALLOWED_USERS:
         return None

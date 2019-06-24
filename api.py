@@ -1,8 +1,6 @@
 import json
 from datetime import timedelta
 
-from aiohttp import client
-
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -16,15 +14,12 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def session_init():
-    app.session_pool = client.ClientSession()
-    print("HTTP Client Session initialized")
     await Redis.initialize()
     print("Redis connections initialized")
 
 
 @app.on_event("shutdown")
 async def session_close():  # Stay tidy
-    await app.session_pool.close()
     await Redis.get_redis().close()
 
 
