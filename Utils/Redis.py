@@ -66,7 +66,7 @@ async def ask_the_bot(type, **kwargs):
     while uid not in replies:
         await asyncio.sleep(0.1)
         waited += 1
-        if waited >= 240:
+        if waited >= 120:
             raise NoReplyException("No reply after 12 seconds, something must have gone wrong!")
 
     r = replies[uid]
