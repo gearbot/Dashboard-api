@@ -48,10 +48,13 @@ async def receiver():
             "state": reply["state"],
             "reply": reply.get("reply", {})
         }
-        await asyncio.sleep(5)  # If nobody retreived it after 5s something is already broken, no need to leak as well
-        if reply["uid"] in replies:
-            del replies[reply["uid"]]
+        asyncio.get_running_loop().create_task(cleaner(reply["uid"]))
 
+
+async def cleaner(uid):
+    await asyncio.sleep(5)  # If nobody retreived it after 5s something is already broken, no need to leak as well
+    if uid in replies:
+        del replies[uid]
 
 async def ask_the_bot(type, **kwargs):
     # Attach uid for tracking and send to the bot
