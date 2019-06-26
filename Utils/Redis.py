@@ -43,10 +43,11 @@ async def receiver():
     recv = await message_pool.subscribe("bot-dash-messages")
     recv_channel = recv[0]
     while await recv_channel.wait_message():
-        reply = await recv_channel.get_json()
+        reply: dict = await recv_channel.get_json()
         replies[reply["uid"]] = {
             "state": reply["state"],
-            "reply": reply.get("reply", {})
+            "reply": reply.get("reply", {}),
+            "errors": reply.get("errors", {})
         }
         asyncio.get_running_loop().create_task(cleaner(reply["uid"]))
 
@@ -76,7 +77,7 @@ async def ask_the_bot(type, **kwargs):
         raise FailedException()
     if r["state"] == "Unauthorized":
         raise UnauthorizedException()
-    if r["state"] == "Bad request":
+    if r["state"] == "Bad Request":
         raise BadRequestException(r["errors"])
 
     return r["reply"]
