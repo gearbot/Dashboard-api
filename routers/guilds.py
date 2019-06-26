@@ -53,13 +53,14 @@ async def get_config_section(request: Request, guild_id: int, section: str):
         try:
             s = ConfigSection[section]
             return await Redis.ask_the_bot(
-                "get_config_section", 
-                guild_id=guild_id, 
-                section=s.value, 
+                "get_config_section",
+                guild_id=guild_id,
+                section=s.value,
                 user_id=request.session["user_id"]
             )
         except KeyError:
             return unknown_config_response
+
     return await Auth.handle_it(request, handler)
 
 
@@ -71,13 +72,29 @@ async def update_config_section(request: Request, guild_id: int, section: str, c
         try:
             s = ConfigSection[section]
             return await Redis.ask_the_bot(
-                "update_config_section", 
-                guild_id=guild_id, 
+                "update_config_section",
+                guild_id=guild_id,
                 section=s.value,
                 modified_values=config_values,
                 user_id=request.session["user_id"]
             )
         except KeyError:
             return unknown_config_response
-    
+
+    return await Auth.handle_it(request, handler)
+
+
+@router.post("/{guild_id}/setup_mute")
+async def setup_mute(request: Request, guild_id, role_id: str):
+    async def handler():
+        return await Redis.ask_the_bot("setup_mute", guild_id=guild_id, role_id=role_id)
+
+    return await Auth.handle_it(request, handler)
+
+
+@router.post("/{guild_id}/cleanup_mute")
+async def setup_mute(request: Request, guild_id, role_id: str):
+    async def handler():
+        return await Redis.ask_the_bot("cleanup_mute", guild_id=guild_id, role_id=role_id)
+
     return await Auth.handle_it(request, handler)
