@@ -1,5 +1,5 @@
 from enum import Enum
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Body
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -12,6 +12,8 @@ router = APIRouter()
 class ConfigSection(Enum):
     general = "GENERAL"
     roles = "ROLES"
+    permissions = "PERMISSIONS"
+    dash_security = "DASH_SECURITY"
     log_channels = "LOG_CHANNELS"
     message_logs = "MESSAGE_LOGS"
     censoring = "CENSORING"
@@ -84,17 +86,30 @@ async def update_config_section(request: Request, guild_id: int, section: str, c
     return await Auth.handle_it(request, handler)
 
 
+def is_numeric(value):
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+
 @router.post("/{guild_id}/setup_mute")
-async def setup_mute(request: Request, guild_id, role_id: str):
+async def setup_mute(request: Request, guild_id: int, body: dict):
+    if "role_id" not in body:
+        return JSONResponse({"status": "BAD REQUEST", "errors": ["missing role_id"]}, status_code=400)
+
     async def handler():
-        return await Redis.ask_the_bot("setup_mute", guild_id=guild_id, role_id=role_id)
+        return await Redis.ask_the_bot("setup_mute", guild_id=guild_id, role_id=body["role_id"], user_id=int(request.session["user_id"]))
 
     return await Auth.handle_it(request, handler)
 
 
 @router.post("/{guild_id}/cleanup_mute")
-async def setup_mute(request: Request, guild_id, role_id: str):
+async def setup_mute(request: Request, guild_id: int, body: dict):
+    if "role_id" not in body:
+        return JSONResponse({"status": "BAD REQUEST", "errors": ["missing role_id"]}, status_code=400)
+
     async def handler():
-        return await Redis.ask_the_bot("cleanup_mute", guild_id=guild_id, role_id=role_id)
+        return await Redis.ask_the_bot("cleanup_mute", guild_id=guild_id, role_id=body["role_id"], user_id=int(request.session["user_id"]))
 
     return await Auth.handle_it(request, handler)
