@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from Utils.Prometheus import PromStatsMiddleware
 from Utils import Configuration, Redis
 from routers import crowdin, main, discord, guilds
 
@@ -25,6 +26,7 @@ async def session_close():  # Stay tidy
 
 app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
 app.add_middleware(CORSMiddleware, allow_origins=Configuration.CORS_ORGINS, allow_credentials=True, allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'], allow_headers =['*'])
+app.add_middleware(PromStatsMiddleware)
 app.include_router(main.router, prefix="/api", responses={404: {"description": "Not found"}})
 
 import uvicorn

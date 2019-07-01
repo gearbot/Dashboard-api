@@ -5,6 +5,8 @@ from Utils.Configuration import CLIENT_ID, REDIRECT_URI, CLIENT_URL, API_LOCATIO
 from Utils import Auth
 from secrets import token_urlsafe
 
+from Utils.Prometheus import active_sessions
+
 router = APIRouter()
 
 # Code Generation
@@ -22,7 +24,7 @@ async def discord_oauth_redir():
 # Callback handling
 @router.get("/callback")
 async def handle_callback(error: str=None, code: str=None, state: str=None, request: Request=None, state_key: str = Cookie(None)):
-    if error != None: # They must of denied the auth request
+    if error != None: # They must of denied the auth request if this errors
         return RedirectResponse(f"{CLIENT_URL}")
 
     if state != state_key:
@@ -30,6 +32,10 @@ async def handle_callback(error: str=None, code: str=None, state: str=None, requ
 
     if code != None:
         await Auth.get_bearer_token(request=request, auth_code=code)
+
+        # Track the current number of sessions we know of
+        active_sessions.inc()
+
         return RedirectResponse(f"{CLIENT_URL}/pleaseclosethispopupformektxh", status_code=307)
     else:
         return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")

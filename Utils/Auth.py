@@ -6,8 +6,8 @@ from starlette.responses import JSONResponse
 from aiohttp import client
 
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION, ALLOWED_USERS
-from Utils.Redis import FailedException, UnauthorizedException, NoReplyException, BadRequestException
-from Utils.Responses import unauthorized_response, failed_response, no_reply_response
+from Utils.Errors import FailedException, UnauthorizedException, NoReplyException, BadRequestException
+from Utils.Responses import unauthorized_response
 
 
 async def query_endpoint(request, method, endpoint, data=None):
@@ -102,16 +102,8 @@ async def handle_it(request, handler):
     if any(k not in request.session for k in ["user_id", "refresh_token", "access_token",
                                               "expires_at"]):  # Either the cookie expired or was tampered with
         return unauthorized_response
-    try:
-        response = await handler()
-        if not isinstance(response, JSONResponse):
-            response = JSONResponse(response)
-    except FailedException:
-        response = failed_response
-    except UnauthorizedException:
-        response = unauthorized_response
-    except NoReplyException:
-        response = no_reply_response
-    except BadRequestException as ex:
-        response = JSONResponse(dict(status="Bad request", errors=ex.errors), status_code=400)
+
+    response = await handler()
+    if not isinstance(response, JSONResponse):
+        response = JSONResponse(response)
     return response
