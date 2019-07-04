@@ -14,7 +14,7 @@ async def query_endpoint(request, method, endpoint, data=None):
     session_pool = client.ClientSession()
     expiry = request.session["expires_at"]
     if time.time() + 3 * 24 * 60 * 60 >= int(expiry):
-        token = await get_bearer_token(request=request, refresh=True)
+        token, _ = await get_bearer_token(request=request, refresh=True)
     else:
         token = request.session['access_token']
     headers = dict(Authorization=f"Bearer {token}")
@@ -76,7 +76,7 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
     request.session["access_token"] = access_token
     request.session["expires_at"] = expires_at
 
-    return access_token
+    return (access_token, user_id)
 
 
 # Currently, nothing ever hits this decorator, so it does nothing.

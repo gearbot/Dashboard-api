@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Cookie
 from starlette.responses import RedirectResponse
 from starlette.requests import Request
@@ -5,7 +7,7 @@ from Utils.Configuration import CLIENT_ID, REDIRECT_URI, CLIENT_URL, API_LOCATIO
 from Utils import Auth
 from secrets import token_urlsafe
 
-from Utils.Prometheus import active_sessions
+from Utils.Prometheus import notice_session
 
 router = APIRouter()
 
@@ -31,10 +33,11 @@ async def handle_callback(error: str=None, code: str=None, state: str=None, requ
         return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")
 
     if code != None:
-        await Auth.get_bearer_token(request=request, auth_code=code)
+        _, user_id = await Auth.get_bearer_token(request=request, auth_code=code)
 
         # Track the current number of sessions we know of
-        active_sessions.inc()
+        loop = asyncio.get_running_loop()
+        loop.create_task(notice_session(user_id, True))
 
         return RedirectResponse(f"{CLIENT_URL}/pleaseclosethispopupformektxh", status_code=307)
     else:

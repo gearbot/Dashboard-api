@@ -1,10 +1,12 @@
+import asyncio
+
 from fastapi import APIRouter, Cookie
 from starlette.responses import JSONResponse, Response
 from starlette.requests import Request
 
 import prometheus_client as prom
 
-from Utils.Prometheus import API_REGISTRY, active_sessions
+from Utils.Prometheus import API_REGISTRY, active_sessions, notice_session
 from routers import discord, crowdin, guilds
 
 router = APIRouter()
@@ -33,9 +35,14 @@ async def get_test(request: Request):
 
 @router.get("/logout")
 async def logout(request: Request):
-    request.session.clear()
 
-    active_sessions.dec()
+    # If their session expires before they press logout then gauge could be at 0
+    # If it was, then don't bother removing their session again, it already happened
+    if active_sessions._value._value > 0:
+        loop = asyncio.get_running_loop()
+        loop.create_task(notice_session(request.session["user_id"], False))
+
+    request.session.clear()
 
     return JSONResponse(dict(status="Success"))
 
@@ -46,7 +53,8 @@ async def identify_endpoint(request: Request):
     # Make sure that after a restart we keep the session counter out of the negitive
     # This will catch sessions that exist but don't hit the login endpoint
     if active_sessions._value._value <= 0:
-        active_sessions.inc()
+        loop = asyncio.get_running_loop()
+        loop.create_task(notice_session(request.session["user_id"], True))
 
     return await Redis.ask_the_bot("user_info", user_id=request.session["user_id"])
 

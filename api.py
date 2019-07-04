@@ -1,3 +1,4 @@
+import asyncio
 import json
 from datetime import timedelta
 
@@ -6,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from Utils.Prometheus import PromStatsMiddleware
+from Utils.Prometheus import PromStatsMiddleware, session_monitor
 from Utils import Configuration, Redis
 from routers import crowdin, main, discord, guilds
 
@@ -17,6 +18,10 @@ app = FastAPI()
 async def session_init():
     await Redis.initialize()
     print("Redis connections initialized")
+
+    loop = asyncio.get_running_loop()
+    loop.create_task(session_monitor())
+    print("Session monitor initialized")
 
 
 @app.on_event("shutdown")
