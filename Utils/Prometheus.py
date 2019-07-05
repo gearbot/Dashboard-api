@@ -10,42 +10,42 @@ from Utils.Errors import FailedException, NoReplyException, UnauthorizedExceptio
 from Utils.Configuration import SESSION_TIMEOUT_LEN
 
 request_counter = prom.Counter(
-    "total_requests",
+    "dashapi_total_requests",
     "Number of HTTP requests we have received",
     ["endpoint", "method"]
 )
 
 response_counter = prom.Counter(
-    "total_responses",
+    "dashapi_total_responses",
     "Number of HTTP responses we have sent to clients",
     ["endpoint", "method", "response_code"]
 )
 
 error_counter = prom.Counter(
-    "total_errors",
+    "dashapi_total_errors",
     "The number of errors we have gotten and from which area",
     ["source"]
 )
 
 active_sessions = prom.Gauge(
-    "current_sessions",
+    "dashapi_current_sessions",
     "Number of sessions that are currently signed in",
     multiprocess_mode = "livesum"
 )
 
 redis_message_count = prom.Counter(
-    "redis_messages",
+    "dashapi_redis_messages",
     "Number of messages we have processed through Redis",
     ["direction"]
 )
 
 bot_response_latency = prom.Histogram(
-    "gearbot_response_latency",
+    "dashapi_gearbot_response_latency",
     "Average response time of Gearbot to our requests"
 )
 
 api_response_latency = prom.Histogram(
-    "api_response_latency",
+    "dashapi_api_response_latency",
     "Average response time the API has to user requests"
 )
 
