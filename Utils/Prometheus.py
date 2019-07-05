@@ -65,7 +65,7 @@ async def session_monitor():
                 max = current_time - SESSION_TIMEOUT_LEN
             )
 
-            if dead_sessions != None:
+            if dead_sessions is not None:
                 active_sessions.dec(dead_sessions)
 
         await asyncio.sleep(4.9)

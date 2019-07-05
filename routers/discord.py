@@ -16,7 +16,7 @@ router = APIRouter()
 async def discord_oauth_redir():
     state_key = token_urlsafe(20)
     response = RedirectResponse(
-        f"{API_LOCATION}/oauth2/authorize?client_id={CLIENT_ID}&state={state_key}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify guilds",
+        f"{API_LOCATION}/oauth2/authorize?client_id={CLIENT_ID}&state={state_key}&redirect_uri={REDIRECT_URI}&response_type=code&scope=identify guilds&prompt=none",
         status_code=307
     )
     # We won't need this cookie 5 minutes later
@@ -39,6 +39,6 @@ async def handle_callback(error: str=None, code: str=None, state: str=None, requ
         loop = asyncio.get_running_loop()
         loop.create_task(notice_session(user_id, True))
 
-        return RedirectResponse(f"{CLIENT_URL}/pleaseclosethispopupformektxh", status_code=307)
+        return RedirectResponse(CLIENT_URL, status_code=307)
     else:
         return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")
