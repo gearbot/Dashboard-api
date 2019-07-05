@@ -90,7 +90,16 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method
 
-        request_counter.labels(path, method).inc()
+        is_metric_request = False
+
+        # Filter out guild IDs and metric requests
+        if any(char.isdigit() for char in path):
+            path = "/".join([part for i, part in enumerate(path.split("/")) if i!=3])
+        elif path.endswith("/metrics"):
+            is_metric_request = True
+        else:
+            request_counter.labels(path, method).inc()
+
         try:
             response: Response = await call_next(request)
         except Exception as error:
@@ -115,8 +124,10 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
             api_response_latency.observe(get_ms_passed(processing_start, time_ns()))
             return response
 
-        response_counter.labels(path, method, response.status_code).inc()
+        # Don't count metric requests
+        if not is_metric_request:
+            response_counter.labels(path, method, response.status_code).inc()
+            api_response_latency.observe(get_ms_passed(processing_start, time_ns()))
 
-        api_response_latency.observe(get_ms_passed(processing_start, time_ns()))
         return response
         
