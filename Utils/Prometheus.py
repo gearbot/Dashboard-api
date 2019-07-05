@@ -87,16 +87,29 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         processing_start = time_ns()
 
-        path = request.url.path
+        path: str = request.url.path
         method = request.method
 
-        is_metric_request = False
+        is_uncounted_request = False
 
         # Filter out guild IDs and metric requests
         if any(char.isdigit() for char in path):
-            path = "/".join([part for i, part in enumerate(path.split("/")) if i!=3])
+            path_parts = [part for i, part in enumerate(path.split("/")) if i!=3]
+            path: str = "/".join(path_parts)
+            
+            # Clean up the exact config fields
+            if "config" in path:
+                path = "/".join(path_parts[:-1])
+
+            request_counter.labels(path, method).inc()
+
+         # Normalize request paths
+        elif path.endswith("/"):
+            path = path[:-1]
+            request_counter.labels(path, method).inc()
+        # Ignore metric endpoint requests
         elif path.endswith("/metrics"):
-            is_metric_request = True
+            is_uncounted_request = True
         else:
             request_counter.labels(path, method).inc()
 
@@ -125,7 +138,7 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
             return response
 
         # Don't count metric requests
-        if not is_metric_request:
+        if not is_uncounted_request:
             response_counter.labels(path, method, response.status_code).inc()
             api_response_latency.observe(get_ms_passed(processing_start, time_ns()))
 
