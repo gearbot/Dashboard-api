@@ -1,13 +1,20 @@
 import asyncio
+import os
 
 from fastapi import APIRouter, Cookie
 from starlette.responses import JSONResponse, Response
 from starlette.requests import Request
 
 import prometheus_client as prom
+from prometheus_client import multiprocess, CollectorRegistry
 
-from Utils.Prometheus import API_REGISTRY, active_sessions, notice_session
+from Utils.Prometheus import active_sessions, notice_session
 from routers import discord, crowdin, guilds
+
+if "prometheus_multiproc_dir" in os.environ:
+    prom_multit_mode = True
+else:
+    prom_multit_mode = False
 
 router = APIRouter()
 
@@ -19,7 +26,12 @@ async def read_root():
 
 @router.get("/metrics")
 async def get_prom_metrics():
-    metric_data = prom.generate_latest(API_REGISTRY).decode("utf-8")
+    if prom_multit_mode:
+        registry = CollectorRegistry()
+        multiprocess.MultiProcessCollector(registry)
+        metric_data = prom.generate_latest(registry).decode("utf-8")
+    else:
+        metric_data = prom.generate_latest(prom.REGISTRY).decode("utf-8")
     return Response(metric_data, media_type="text/plain")
 
 @router.get("/test")

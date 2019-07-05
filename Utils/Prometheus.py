@@ -9,8 +9,6 @@ from Utils.Responses import unauthorized_response, failed_response, no_reply_res
 from Utils.Errors import FailedException, NoReplyException, UnauthorizedException, BadRequestException
 from Utils.Configuration import SESSION_TIMEOUT_LEN
 
-API_REGISTRY = prom.REGISTRY
-
 request_counter = prom.Counter(
     "total_requests",
     "Number of HTTP requests we have received",
@@ -31,7 +29,8 @@ error_counter = prom.Counter(
 
 active_sessions = prom.Gauge(
     "current_sessions",
-    "Number of sessions that are currently signed in"
+    "Number of sessions that are currently signed in",
+    multiprocess_mode = "livesum"
 )
 
 redis_message_count = prom.Counter(

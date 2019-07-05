@@ -105,3 +105,6 @@ venv.bak/
 
 # Configs and Secrets
 config.json
+
+# Prometheus Metrics
+prommetrics/
