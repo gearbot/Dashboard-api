@@ -7,7 +7,6 @@ from starlette.responses import Response, JSONResponse
 
 from Utils.Responses import unauthorized_response, failed_response, no_reply_response
 from Utils.Errors import FailedException, NoReplyException, UnauthorizedException, BadRequestException
-from Utils.Configuration import SESSION_TIMEOUT_LEN
 
 request_counter = prom.Counter(
     "dashapi_total_requests",
@@ -61,7 +60,7 @@ async def session_monitor():
             # Remove all sessions that are older, or as old, as our timeout length
             dead_sessions = await redis.zremrangebyscore(
                 "current_dash_sessions",
-                max = current_time - SESSION_TIMEOUT_LEN
+                max = current_time - (2 * 60 * 60) # Max "active session" length is 2 hours
             )
 
             if dead_sessions is not None:
