@@ -53,9 +53,16 @@ from Utils.Redis import get_ms_passed, get_redis
 
 async def session_monitor():
     redis = await get_redis()
+
+    # Restore sessions after a restart from Redis
+    current_sessions = await redis.zcard("current_dash_sessions")
+    if current_sessions != None:
+        active_sessions.set(current_sessions)
+
     while True:
         # Check if the set currently has any contents, O(1)
-        if await redis.zcard("current_dash_sessions") != 0: 
+        current_sessions = await redis.zcard("current_dash_sessions")
+        if current_sessions != 0: 
             current_time = time()
             # Remove all sessions that are older, or as old, as our timeout length
             dead_sessions = await redis.zremrangebyscore(
@@ -63,8 +70,8 @@ async def session_monitor():
                 max = current_time - (2 * 60 * 60) # Max "active session" length is 2 hours
             )
 
-            if dead_sessions is not None:
-                active_sessions.dec(dead_sessions)
+            if dead_sessions != None:
+                active_sessions.set(current_sessions - dead_sessions)
 
         await asyncio.sleep(4.9)
 
