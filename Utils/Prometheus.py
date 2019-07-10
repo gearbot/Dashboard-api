@@ -98,7 +98,7 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
 
         is_uncounted_request = False
 
-        # Filter out guild IDs and metric requests
+        # Filter out guild IDs, metric requests, and keepalives
         if any(char.isdigit() for char in path):
             path_parts = [part for i, part in enumerate(path.split("/")) if i!=3]
             path: str = "/".join(path_parts)
@@ -109,12 +109,15 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
 
             request_counter.labels(path, method).inc()
 
-         # Normalize request paths
+        # Normalize request paths
         elif path.endswith("/"):
             path = path[:-1]
             request_counter.labels(path, method).inc()
         # Ignore metric endpoint requests
         elif path.endswith("/metrics"):
+            is_uncounted_request = True
+        # Ignore keepalive
+        elif path.endswith("/spinning"):
             is_uncounted_request = True
         else:
             request_counter.labels(path, method).inc()

@@ -58,6 +58,11 @@ async def logout(request: Request):
 
     return JSONResponse(dict(status="Success"))
 
+# In case some other method of accessing these stats are needed
+@router.get("/spinning")
+@Auth.auth_required
+async def still_spinning(request: Request):
+    return await Redis.is_bot_alive()
 
 @router.get("/whoami")
 @Auth.auth_required
