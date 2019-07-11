@@ -9,6 +9,7 @@ from aiohttp import client
 from Utils.Configuration import REDIS_ADDRESS
 from Utils.Errors import FailedException, NoReplyException, UnauthorizedException, BadRequestException
 from Utils.Prometheus import redis_message_count, bot_response_latency
+from Utils.Configuration import OUTAGE_DETECTION
 from Utils.Configuration import MAX_BOT_OUTAGE_WARNINGS, BOT_OUTAGE_WEBHOOK, BOT_OUTAGE_MESSAGE, BOT_OUTAGE_PINGED_ROLES
 
 bot_alive = False
@@ -34,7 +35,9 @@ async def initialize():
     message_pool = await aioredis.create_redis_pool(REDIS_ADDRESS, encoding="utf-8", db=0)
     loop = asyncio.get_running_loop()
     loop.create_task(receiver())
-    loop.create_task(bot_spinning())
+
+    if OUTAGE_DETECTION:
+        loop.create_task(bot_spinning())
 
 async def is_bot_alive():
     return bot_alive

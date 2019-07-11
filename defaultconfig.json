@@ -8,6 +8,7 @@
     "session_key": "",
 
     "bot_outage": {
+        "outage_detection": false,
         "max_bot_outage_warnings": 1,
         "bot_outage_webhook": "",
         "bot_outage_pinged_roles": [999999999],
