@@ -39,8 +39,10 @@ async def initialize():
     if OUTAGE_DETECTION:
         loop.create_task(bot_spinning())
 
+
 async def is_bot_alive():
     return bot_alive
+
 
 async def notify_outage(warning_count: int):
     hook_client = client.ClientSession()
@@ -49,12 +51,6 @@ async def notify_outage(warning_count: int):
 
     # Apply the timestamp
     message_data["embeds"][0]["timestamp"] = datetime.now().isoformat()
-
-    # Set the current warning count
-    message_data["embeds"][0]["fields"][0]["value"] = f"{warning_count}/{MAX_BOT_OUTAGE_WARNINGS}"
-
-    # Set the color to the format Discord understands
-    message_data["embeds"][0]["color"] = int(message_data["embeds"][0]["color"], 16)
         
     # Generate the custom message and role pings
     if BOT_OUTAGE_PINGED_ROLES:
@@ -73,8 +69,9 @@ async def notify_outage(warning_count: int):
 
     await hook_client.close()
 
+
 async def bot_spinning():
-    print("Gearbot outage monitor initalized")
+    print("GearBot outage monitor initalized")
     retry_attempts = 0
     warnings_sent = 0
     while True:
@@ -118,7 +115,7 @@ async def bot_spinning():
         global bot_alive
         bot_alive = alive_internal
 
-        await asyncio.sleep(60)
+        await asyncio.sleep(2)
 
 
 async def receiver():
