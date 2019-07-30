@@ -16,13 +16,37 @@ bot_alive = False
 storage_pool = None
 message_pool = None
 replies = dict()
+cache_info = None
+
+
+async def cache_info(message):
+    global cache_info
+    cache_info = message["info"]
+
+
+async def get_cache_info():
+    if cache_info is None:
+        await cache()
+    return cache_info
+
+
+async def cache():
+    global cache_info
+    try:
+        cache_info = await ask_the_bot('cache_info')
+    except NoReplyException:
+        pass
+
+
+handlers = dict(
+    cache_info=cache_info
+)
 
 
 def get_ms_passed(start: float, finish: float) -> float:
     diff = finish - start
     miliseconds_passed = diff / 1000000
     return miliseconds_passed
-
 
 
 def get_redis():
@@ -51,7 +75,7 @@ async def notify_outage(warning_count: int):
 
     # Apply the timestamp
     message_data["embeds"][0]["timestamp"] = datetime.now().isoformat()
-        
+
     # Generate the custom message and role pings
     if BOT_OUTAGE_PINGED_ROLES:
         pinged_roles = []
@@ -62,7 +86,7 @@ async def notify_outage(warning_count: int):
 
     result = await hook_client.post(
         BOT_OUTAGE_WEBHOOK,
-        json = message_data
+        json=message_data
     )
 
     print("Sent outage notification!")
@@ -79,8 +103,8 @@ async def bot_spinning():
         await message_pool.publish_json(
             "dash-bot-messages",
             dict(
-                type = "heartbeat",
-                uid = uid
+                type="heartbeat",
+                uid=uid
             )
         )
 
@@ -97,7 +121,7 @@ async def bot_spinning():
                 break
 
         if retry_attempts >= 3 and warnings_sent < MAX_BOT_OUTAGE_WARNINGS:
-           
+
             if BOT_OUTAGE_WEBHOOK:
                 warnings_sent += 1
                 loop = asyncio.get_running_loop()
@@ -123,19 +147,23 @@ async def receiver():
     recv_channel = recv[0]
     while await recv_channel.wait_message():
         reply: dict = await recv_channel.get_json()
-        replies[reply["uid"]] = {
-            "state": reply["state"],
-            "reply": reply.get("reply", {}),
-            "errors": reply.get("errors", {})
-        }
+        if "type" in reply:
+            await handlers[reply["type"]](reply)
+        else:
+            replies[reply["uid"]] = {
+                "state": reply["state"],
+                "reply": reply.get("reply", {}),
+                "errors": reply.get("errors", {})
+            }
+            asyncio.get_running_loop().create_task(cleaner(reply["uid"]))
         redis_message_count.labels("received").inc()
-        asyncio.get_running_loop().create_task(cleaner(reply["uid"]))
 
 
 async def cleaner(uid):
     await asyncio.sleep(5)  # If nobody retreived it after 5s something is already broken, no need to leak as well
     if uid in replies:
         del replies[uid]
+
 
 async def ask_the_bot(type, **kwargs):
     # Attach uid for tracking and send to the bot

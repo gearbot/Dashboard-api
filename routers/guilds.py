@@ -66,6 +66,25 @@ async def get_config_section(request: Request, guild_id: int, section: str):
     return await Auth.handle_it(request, handler)
 
 
+@router.post("/{guild_id}/config/{section}")
+async def update_config_section(request: Request, guild_id: int, section: str, config_values: dict):
+    async def handler():
+        if guild_id is None or section is None:
+            return bad_request_response
+        try:
+            s = ConfigSection[section]
+            return await Redis.ask_the_bot(
+                "replace_config_section",
+                guild_id=guild_id,
+                section=s.value,
+                modified_values=config_values,
+                user_id=request.session["user_id"]
+            )
+        except KeyError:
+            return unknown_config_response
+
+    return await Auth.handle_it(request, handler)
+
 @router.patch("/{guild_id}/config/{section}")
 async def update_config_section(request: Request, guild_id: int, section: str, config_values: dict):
     async def handler():

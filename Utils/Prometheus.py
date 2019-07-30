@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, Request
 from starlette.responses import Response, JSONResponse
 
 from Utils.Responses import unauthorized_response, failed_response, no_reply_response
-from Utils.Errors import FailedException, NoReplyException, UnauthorizedException, BadRequestException
+from Utils.Errors import NoReplyException, UnauthorizedException, BadRequestException, FailedException
 
 request_counter = prom.Counter(
     "dashapi_total_requests",
@@ -29,7 +29,7 @@ error_counter = prom.Counter(
 active_sessions = prom.Gauge(
     "dashapi_current_sessions",
     "Number of sessions that are currently signed in",
-    multiprocess_mode = "livesum"
+    multiprocess_mode="livesum"
 )
 
 redis_message_count = prom.Counter(
@@ -62,18 +62,19 @@ async def session_monitor():
     while True:
         # Check if the set currently has any contents, O(1)
         current_sessions = await redis.zcard("current_dash_sessions")
-        if current_sessions != 0: 
+        if current_sessions != 0:
             current_time = time()
             # Remove all sessions that are older, or as old, as our timeout length
             dead_sessions = await redis.zremrangebyscore(
                 "current_dash_sessions",
-                max = current_time - (2 * 60 * 60) # Max "active session" length is 2 hours
+                max=current_time - (2 * 60 * 60)  # Max "active session" length is 2 hours
             )
 
             if dead_sessions != None:
                 active_sessions.set(current_sessions - dead_sessions)
 
         await asyncio.sleep(4.9)
+
 
 async def notice_session(user_id, was_add: bool):
     redis = await get_redis()
@@ -100,9 +101,9 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
 
         # Filter out guild IDs, metric requests, and keepalives
         if any(char.isdigit() for char in path):
-            path_parts = [part for i, part in enumerate(path.split("/")) if i!=3]
+            path_parts = [part for i, part in enumerate(path.split("/")) if i != 3]
             path: str = "/".join(path_parts)
-            
+
             # Clean up the exact config fields
             if "config" in path:
                 path = "/".join(path_parts[:-1])
@@ -126,14 +127,16 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
             response: Response = await call_next(request)
         except Exception as error:
             # Generate the appropriate error response
-            if isinstance(error, BadRequestException):
+            if isinstance(error, FailedException):
                 response = failed_response
             elif isinstance(error, UnauthorizedException):
                 response = unauthorized_response
             elif isinstance(error, NoReplyException):
                 response = no_reply_response
             elif isinstance(error, BadRequestException):
-                response = JSONResponse(dict(status="Bad request", errors=ex.errors), status_code=400)
+                response = JSONResponse(dict(status="Bad request", errors=error.errors), status_code=400)
+            else:
+                response=JSONResponse(dict(status="Unknown error occurred"), status_code=500)
 
             # Try and get the proper error root if we can
             if hasattr(error, "source"):
@@ -152,4 +155,3 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
             api_response_latency.observe(get_ms_passed(processing_start, time_ns()))
 
         return response
-        

@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-from fastapi import APIRouter, Cookie
+from fastapi import APIRouter
 from starlette.responses import JSONResponse, Response
 from starlette.requests import Request
 
@@ -75,9 +75,9 @@ async def identify_endpoint(request: Request):
 
     return await Redis.ask_the_bot("user_info", user_id=request.session["user_id"])
 
-@router.get("/languages")
-async def languages(request: Request):
-    return await Redis.ask_the_bot("languages")
+@router.get("/general_info")
+async def general_info():
+    return await Redis.get_cache_info   ()
 
 router.include_router(discord.router, prefix="/discord", responses={404: {"description": "Not found"}})
 router.include_router(crowdin.router, prefix="/crowdin-webhook", responses={404: {"description": "Not found"}})
