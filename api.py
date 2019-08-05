@@ -1,5 +1,6 @@
 import asyncio
 import time
+import sys
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
@@ -24,9 +25,11 @@ async def session_init():
 
     await Redis.cache()
 
-
+# This currently breaks closing Redis when running inside pytest, will need a better fix
 @app.on_event("shutdown")
-async def session_close():  # Stay tidy
+async def session_close(): # Stay tidy
+    if "pytest" in sys.modules:
+        return
     await Redis.get_redis().close()
 
 

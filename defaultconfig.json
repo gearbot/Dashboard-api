@@ -42,5 +42,12 @@
         "localhost", 
         "localhost:8080",
         "localhost:5000"
-    ]
+    ],
+
+    "testing_info": {
+        "user_id": 999999,
+        "session": "",
+        "guild_id": 999999,
+        "guild_mute_role": 99999
+    }
 }

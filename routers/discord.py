@@ -8,6 +8,7 @@ from Utils import Auth
 from secrets import token_urlsafe
 
 from Utils.Prometheus import notice_session
+from Utils.Responses import bad_oauth_response
 
 router = APIRouter()
 
@@ -30,7 +31,7 @@ async def handle_callback(error: str=None, code: str=None, state: str=None, requ
         return RedirectResponse(f"{CLIENT_URL}")
 
     if state != state_key:
-        return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")
+        return bad_oauth_response
 
     if code != None:
         _, user_id = await Auth.get_bearer_token(request=request, auth_code=code)
@@ -41,4 +42,4 @@ async def handle_callback(error: str=None, code: str=None, state: str=None, requ
 
         return RedirectResponse(CLIENT_URL, status_code=307)
     else:
-        return RedirectResponse("https://i.imgur.com/vN5jG9r.mp4")
+        return bad_oauth_response
