@@ -9,6 +9,7 @@ import prometheus_client as prom
 from prometheus_client import multiprocess, CollectorRegistry
 
 from Utils.Prometheus import active_sessions, notice_session
+from Utils.Responses import successful_action_response
 from routers import discord, crowdin, guilds
 
 if "prometheus_multiproc_dir" in os.environ:
@@ -46,8 +47,8 @@ async def get_test(request: Request):
 
 
 @router.get("/logout")
+@Auth.auth_required
 async def logout(request: Request):
-
     # If their session expires before they press logout then gauge could be at 0
     # If it was, then don't bother removing their session again, it already happened
     if active_sessions._value._value > 0:
@@ -56,11 +57,10 @@ async def logout(request: Request):
 
     request.session.clear()
 
-    return JSONResponse(dict(status="Success"))
+    return successful_action_response
 
 # In case some other method of accessing these stats are needed
 @router.get("/spinning")
-@Auth.auth_required
 async def still_spinning(request: Request):
     return await Redis.is_bot_alive()
 
@@ -77,7 +77,7 @@ async def identify_endpoint(request: Request):
 
 @router.get("/general_info")
 async def general_info():
-    return await Redis.get_cache_info   ()
+    return await Redis.get_cache_info()
 
 router.include_router(discord.router, prefix="/discord", responses={404: {"description": "Not found"}})
 router.include_router(crowdin.router, prefix="/crowdin-webhook", responses={404: {"description": "Not found"}})
