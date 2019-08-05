@@ -139,7 +139,7 @@ async def bot_spinning():
         global bot_alive
         bot_alive = alive_internal
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(60)
 
 
 async def receiver():

@@ -99,9 +99,12 @@ def if_authorized(handler):
 
 
 async def handle_it(request, handler):
-    if any(k not in request.session for k in ["user_id", "refresh_token", "access_token",
-                                              "expires_at"]):  # Either the cookie expired or was tampered with
-        return unauthorized_response
+    if any(k not in request.session for k in [
+        "user_id", 
+        "refresh_token", 
+        "access_token",
+        "expires_at"
+    ]): return unauthorized_response # Either the cookie expired or was tampered with
 
     response = await handler()
     if not isinstance(response, JSONResponse):
