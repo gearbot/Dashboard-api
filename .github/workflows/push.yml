@@ -19,7 +19,7 @@ jobs:
       env:
         DEPLOY_KEY: ${{ secrets.KEY }}
         SERVER_CONNECTION_STRING: ${{ secrets.SERVER_CONNECTION_STRING }}
-        COMMAND: "cd ~/Dashboard-api && /usr/bin/git pull && sudo /bin/systemctl restart dashboard.service && sleep 30s && /bin/systemctl is-active --quiet dashboard.service"
+        COMMAND: "cd ~/Dashboard-api && /usr/bin/git pull && sudo /bin/systemctl restart dashboard.service && sleep 60s && /bin/systemctl is-active --quiet dashboard.service"
         PORT: ${{ secrets.PORT }}
     - name: Send discord notification
       uses: AEnterprise/discord-webhook@master
