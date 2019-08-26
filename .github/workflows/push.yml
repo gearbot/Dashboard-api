@@ -5,7 +5,7 @@ on:
 name: Deploy API
 jobs:
   deploy:
-    name: Executing remote ssh commands
+    name: Deploy API
     runs-on: ubuntu-latest
     steps:
     - name: Send discord notification

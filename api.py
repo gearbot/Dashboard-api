@@ -4,14 +4,15 @@ import sys
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
+from tortoise import Tortoise
 
-from Utils.Prometheus import PromStatsMiddleware, session_monitor
+from Utils.Configuration import DB_URL
+from Utils.Prometheus import session_monitor
 from Utils import Configuration, Redis
-from routers import main
+from routers import main, websocket
 
-app = FastAPI()
+# app = FastAPI()
 
 
 @app.on_event("startup")
@@ -23,6 +24,14 @@ async def session_init():
     loop.create_task(session_monitor())
     print("Session monitor initialized")
 
+    await Tortoise.init(
+        db_url=DB_URL,
+        modules={'models': ['Utils.DataModels']}
+    )
+    # Generate the schema
+    # await Tortoise.generate_schemas()
+    print("Database connection established")
+
     await Redis.cache()
 
 # This currently breaks closing Redis when running inside pytest, will need a better fix
@@ -31,6 +40,7 @@ async def session_close(): # Stay tidy
     if "pytest" in sys.modules:
         return
     await Redis.get_redis().close()
+    await Tortoise.close_connections()
 
 
 @app.middleware("http")
@@ -43,10 +53,13 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
-app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
+# app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
 app.add_middleware(CORSMiddleware, allow_origins=Configuration.CORS_ORGINS, allow_credentials=True, allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'], allow_headers =['*'])
-app.add_middleware(PromStatsMiddleware)
+# app.add_middleware(PromStatsMiddleware)
 app.include_router(main.router, prefix="/api", responses={404: {"description": "Not found"}})
+app.include_router(websocket.router) # NO PREFIX HERE OR IT WILL FAIL
+
+
 
 import uvicorn
 
