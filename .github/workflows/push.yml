@@ -15,3 +15,4 @@ jobs:
         DEPLOY_KEY: ${{ secrets.KEY }}
         SERVER_CONNECTION_STRING: ${{ secrets.SERVER_CONNECTION_STRING }}
         COMMAND: "cd ~/Dashboard-api && /usr/bin/git pull && sudo /bin/systemctl restart dashboard"
+        PORT: ${{ secrets.PORT }}
