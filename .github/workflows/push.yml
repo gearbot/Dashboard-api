@@ -5,14 +5,14 @@ on:
 name: Deploy API
 jobs:
   deploy:
-    - name: Send discord notification
-      uses: AEnterprise/discord-webhook@master
-      env:
-        DATA: '{"embeds": [{"description": "[A new dashboard API version is being deployed!]()", "color": 48895, "image": { "url": "https://media1.tenor.com/images/1f84b096cbe1cc9f3763c803bb17e10e/tenor.gif"}}]}'
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     name: Executing remote ssh commands
     runs-on: ubuntu-latest
     steps:
+      - name: Send discord notification
+        uses: AEnterprise/discord-webhook@master
+        env:
+          DATA: '{"embeds": [{"description": "[A new dashboard API version is being deployed!]()", "color": 48895, "image": { "url": "https://media1.tenor.com/images/1f84b096cbe1cc9f3763c803bb17e10e/tenor.gif"}}]}'
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     - uses: actions/checkout@master
     - name: Executing remote ssh commands
       uses: AEnterprise/execute-ssh@master
