@@ -5,6 +5,11 @@ on:
 name: Deploy API
 jobs:
   deploy:
+    - name: Send discord notification
+      uses: AEnterprise/discord-webhook@master
+      env:
+        DATA: '{"embeds": [{"description": "[A new dashboard API version is being deployed!]()", "color": 48895, "image": { "url": "https://media1.tenor.com/images/1f84b096cbe1cc9f3763c803bb17e10e/tenor.gif"}}]}'
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     name: Executing remote ssh commands
     runs-on: ubuntu-latest
     steps:
@@ -14,5 +19,16 @@ jobs:
       env:
         DEPLOY_KEY: ${{ secrets.KEY }}
         SERVER_CONNECTION_STRING: ${{ secrets.SERVER_CONNECTION_STRING }}
-        COMMAND: "cd ~/Dashboard-api && /usr/bin/git pull && sudo /bin/systemctl restart dashboard.service"
+        COMMAND: "cd ~/Dashboard-api && /usr/bin/git pull && sudo /bin/systemctl restart dashboard.service && sleep 30s && /bin/systemctl is-active --quiet dashboard.service"
         PORT: ${{ secrets.PORT }}
+    - name: Send discord notification
+      uses: AEnterprise/discord-webhook@master
+      env:
+        DATA: '{"content": "Dashboard API deployment failed catastrophically and died. Any <@&581757725332209674> around to hit things with a wrench?", "embeds": [{"color": 16711680, "image": { "url": "https://media1.tenor.com/images/b257d1e23bf1437111783159215283cc/tenor.gif"}}]}'
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      if: failure()
+    - name: Send discord notification
+      uses: AEnterprise/discord-webhook@master
+      env:
+        DATA: '{"embeds": [{"description": "[A new dashboard API version is has been successfully deployed!]()", "color": 65294, "image": { "url": "https://media1.tenor.com/images/95ac9a4dcea0e000503d79ee422df947/tenor.gif"}}]}'
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
