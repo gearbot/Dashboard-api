@@ -15,4 +15,4 @@ jobs:
         HOST: ${{ secrets.SERVER_IP }}
         KEY: ${{ secrets.KEY }}
       with:
-        args: --host ${{ secrets.SERVER_IP }} --port ${{ secrets.PORT }} --user ${{ secrets.USERNAME }} --script "cd ~/Dashboard-api" --script "git pull" --script "sudo systemctl restart dashboard"
+        args: --host ${{ secrets.SERVER_IP }} --port ${{ secrets.PORT }} --user ${{ secrets.USERNAME }} --script "cd ~/Dashboard-api && git pull && sudo systemctl restart dashboard"
