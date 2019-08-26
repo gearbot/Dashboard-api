@@ -1,0 +1,18 @@
+on:
+  push:
+    branches:
+      - master
+name: Deploy API
+jobs:
+  deploy:
+    name: Executing remote ssh commands
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Executing remote ssh commands
+      uses: appleboy/ssh-action@master
+      env:
+        HOST: ${{ secrets.SERVER_IP }}
+        KEY: ${{ secrets.KEY }}
+      with:
+        args: --host ${{ secrets.SERVER_IP }} --user ${{ secrets.USERNAME }} --script "cd ~/Dashboard-api" --script "git pull" --script "sudo systemctl restart dashboard"
