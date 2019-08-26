@@ -1,4 +1,6 @@
+import secrets
 import time
+from datetime import datetime
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -6,7 +8,7 @@ from starlette.responses import JSONResponse
 from aiohttp import client
 
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION, ALLOWED_USERS
-from Utils.Errors import FailedException, UnauthorizedException, NoReplyException, BadRequestException
+from Utils.DataModels import Dashsession
 from Utils.Responses import unauthorized_response
 
 
@@ -14,7 +16,7 @@ async def query_endpoint(request, method, endpoint, data=None):
     session_pool = client.ClientSession()
     expiry = request.session["expires_at"]
     if time.time() + 3 * 24 * 60 * 60 >= int(expiry):
-        token, _ = await get_bearer_token(request=request, refresh=True)
+        token, _, __ = await get_bearer_token(request=request, refresh=True)
     else:
         token = request.session['access_token']
     headers = dict(Authorization=f"Bearer {token}")
@@ -23,7 +25,7 @@ async def query_endpoint(request, method, endpoint, data=None):
         return await response.json()
 
 
-async def get_bearer_token(request: Request, refresh: bool = False, auth_code: str = ""):
+async def get_bearer_token(request: Request, refresh: bool = False, auth_code: str = "", token=None):
     session_pool = client.ClientSession()
 
     body = {
@@ -71,12 +73,17 @@ async def get_bearer_token(request: Request, refresh: bool = False, auth_code: s
     if int(user_id) not in ALLOWED_USERS:
         return None
 
-    request.session["user_id"] = user_id
-    request.session["refresh_token"] = refresh_token
-    request.session["access_token"] = access_token
-    request.session["expires_at"] = expires_at
+    if token is None:
+        token = secrets.token_urlsafe()
+        await Dashsession.create(id=token, user_id=user_id, api_token=access_token, refresh_token=refresh_token, expires_at=datetime.fromtimestamp(expires_at))
+    else:
+        session = await Dashsession.get(token=token)
+        session.api_token=access_token
+        session.refresh_token = refresh_token
+        session.expires_at = expires_at
+        await session.save()
 
-    return (access_token, user_id)
+    return access_token, user_id, token
 
 
 # Currently, nothing ever hits this decorator, so it does nothing.

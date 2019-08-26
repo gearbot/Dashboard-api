@@ -21,7 +21,7 @@ cache_info = None
 
 async def cache_info(message):
     global cache_info
-    cache_info = message["info"]
+    cache_info = message
 
 
 async def get_cache_info():
@@ -38,8 +38,18 @@ async def cache():
         pass
 
 
+async def reply(message):
+    replies[message["uid"]] = {
+        "state": message["state"],
+        "reply": message.get("reply", {}),
+        "errors": message.get("errors", {})
+    }
+    asyncio.get_running_loop().create_task(cleaner(message["uid"]))
+
+
 handlers = dict(
-    cache_info=cache_info
+    cache_info=cache_info,
+    reply=reply
 )
 
 
@@ -147,15 +157,7 @@ async def receiver():
     recv_channel = recv[0]
     while await recv_channel.wait_message():
         reply: dict = await recv_channel.get_json()
-        if "type" in reply:
-            await handlers[reply["type"]](reply)
-        else:
-            replies[reply["uid"]] = {
-                "state": reply["state"],
-                "reply": reply.get("reply", {}),
-                "errors": reply.get("errors", {})
-            }
-            asyncio.get_running_loop().create_task(cleaner(reply["uid"]))
+        await handlers[reply["type"]](reply["message"])
         redis_message_count.labels("received").inc()
 
 
@@ -165,13 +167,14 @@ async def cleaner(uid):
         del replies[uid]
 
 
+async def send_to_bot(type, message):
+    await message_pool.publish_json("dash-bot-messages", dict(type=type, message=message))
+
+
 async def ask_the_bot(type, **kwargs):
     # Attach uid for tracking and send to the bot
     uid = str(uuid.uuid4())
-    await message_pool.publish_json("dash-bot-messages", dict(type=type, uid=uid, **kwargs))
-    redis_message_count.labels("sent").inc()
-
-    send_time = time_ns()
+    await send_to_bot("question", dict(type=type, uid=uid, data=kwargs))
 
     # Wait for a reply for up to 12 seconds
     waited = 0
@@ -183,9 +186,6 @@ async def ask_the_bot(type, **kwargs):
                 source="Redis",
                 details="Gearbot didn't reply after 12 seconds, Something must of gone wrong!",
             )
-
-    # Track how long it took the bot to respond
-    bot_response_latency.observe(get_ms_passed(send_time, time_ns()))
 
     r = replies[uid]
     del replies[uid]

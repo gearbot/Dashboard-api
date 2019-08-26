@@ -33,13 +33,10 @@ async def handle_callback(error: str=None, code: str=None, state: str=None, requ
     if state != state_key:
         return bad_oauth_response
 
-    if code != None:
-        _, user_id = await Auth.get_bearer_token(request=request, auth_code=code)
-
-        # Track the current number of sessions we know of
-        loop = asyncio.get_running_loop()
-        loop.create_task(notice_session(user_id, True))
-
-        return RedirectResponse(CLIENT_URL, status_code=307)
+    if code is not None:
+        _, user_id, token = await Auth.get_bearer_token(request=request, auth_code=code)
+        response = RedirectResponse(CLIENT_URL, status_code=307)
+        response.set_cookie("token", token)
+        return response
     else:
         return bad_oauth_response

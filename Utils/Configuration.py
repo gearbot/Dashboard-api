@@ -25,3 +25,5 @@ else:
     REDIS_ADDRESS = r["socket"]
 CORS_ORGINS: list = config["cors_orgins"]
 TRUSTED_HOSTS: list = config["trusted_hosts"]
+
+DB_URL = config['db_url']
