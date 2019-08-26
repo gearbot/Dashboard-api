@@ -12,7 +12,7 @@ from Utils.Prometheus import session_monitor
 from Utils import Configuration, Redis
 from routers import main, websocket
 
-# app = FastAPI()
+app = FastAPI()
 
 
 @app.on_event("startup")
