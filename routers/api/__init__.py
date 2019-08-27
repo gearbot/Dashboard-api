@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from fastapi import APIRouter
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 from starlette.requests import Request
 
 import prometheus_client as prom
@@ -10,7 +10,8 @@ from prometheus_client import multiprocess, CollectorRegistry
 
 from Utils.Prometheus import active_sessions, notice_session
 from Utils.Responses import successful_action_response, unauthorized_response
-from routers import discord, crowdin, guilds
+from routers import crowdin, admin
+from routers.api import discord, guilds
 
 if "prometheus_multiproc_dir" in os.environ:
     prom_multit_mode = True
@@ -82,3 +83,4 @@ async def general_info():
 router.include_router(discord.router, prefix="/discord", responses={404: {"description": "Not found"}})
 router.include_router(crowdin.router, prefix="/crowdin-webhook", responses={404: {"description": "Not found"}})
 router.include_router(guilds.router, prefix="/guilds", responses={404: {"description": "Not found"}})
+router.include_router(admin.router, prefix="/admin", responses={404: {"description": "Not found"}})

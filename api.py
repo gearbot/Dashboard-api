@@ -10,7 +10,7 @@ from tortoise import Tortoise
 from Utils.Configuration import DB_URL
 from Utils.Prometheus import session_monitor
 from Utils import Configuration, Redis
-from routers import main, websocket
+from routers import api, websocket
 
 app = FastAPI()
 
@@ -56,7 +56,7 @@ async def add_process_time_header(request: Request, call_next):
 # app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
 app.add_middleware(CORSMiddleware, allow_origins=Configuration.CORS_ORGINS, allow_credentials=True, allow_methods=['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'], allow_headers =['*'])
 # app.add_middleware(PromStatsMiddleware)
-app.include_router(main.router, prefix="/api", responses={404: {"description": "Not found"}})
+app.include_router(api.router, prefix="/api", responses={404: {"description": "Not found"}})
 app.include_router(websocket.router) # NO PREFIX HERE OR IT WILL FAIL
 
 
