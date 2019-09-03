@@ -18,4 +18,4 @@ class Body(BaseModel):
 async def update(request: Request, body: Body):
     if body.key != UPDATE_KEY:
         return unauthorized_response
-    await Redis.send_to_bot("update", dict(type=body.type))
+    await Redis.send_to_bot("update", type=body.type)

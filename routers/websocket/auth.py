@@ -9,7 +9,10 @@ async def hello(websocket: WebSocket, message):
     else:
         reply = {
             "authorized": True,
-            "user_info": await Redis.ask_the_bot("user_info", user_id=websocket.auth_info.user_id)
+            "user_info": {
+                "id": str(websocket.auth_info.user_id),
+                **await Redis.ask_the_bot("user_info", user_id=websocket.auth_info.user_id)
+            }
         }
     await websocket.send_json(
         {

@@ -11,6 +11,7 @@ from Utils.Errors import FailedException, NoReplyException, UnauthorizedExceptio
 from Utils.Prometheus import redis_message_count, bot_response_latency
 from Utils.Configuration import OUTAGE_DETECTION
 from Utils.Configuration import MAX_BOT_OUTAGE_WARNINGS, BOT_OUTAGE_WEBHOOK, BOT_OUTAGE_MESSAGE, BOT_OUTAGE_PINGED_ROLES
+from routers.websocket.subscriptions import send_to_subscribers
 
 bot_alive = False
 storage_pool = None
@@ -38,6 +39,10 @@ async def cache():
         pass
 
 
+def get_info(message):
+    return str(message.get("guild_id", None)), str(message.get("user_id", None))
+
+
 async def reply(message):
     replies[message["uid"]] = {
         "state": message["state"],
@@ -47,9 +52,25 @@ async def reply(message):
     asyncio.get_running_loop().create_task(cleaner(message["uid"]))
 
 
+async def guild_add(message):
+    await send_to_subscribers("guilds", subkey=str(message["user_id"]), type="add", guilds=message["guilds"])
+
+
+async def guild_remove(message):
+    await send_to_subscribers("guilds", subkey=str(message["user_id"]), type="remove", guild=message["guild"])
+
+
+async def guild_update(message):
+    guild_id, user_id = get_info(message)
+    await send_to_subscribers("guild_info", guild_id, user_id, **message["info"])
+
+
 handlers = dict(
     cache_info=cache_info,
-    reply=reply
+    reply=reply,
+    guild_add=guild_add,
+    guild_remove=guild_remove,
+    guild_update=guild_update
 )
 
 
@@ -167,14 +188,14 @@ async def cleaner(uid):
         del replies[uid]
 
 
-async def send_to_bot(type, message):
-    await message_pool.publish_json("dash-bot-messages", dict(type=type, message=message))
+async def send_to_bot(t, **kwargs):
+    await message_pool.publish_json("dash-bot-messages", dict(type=t, message=kwargs))
 
 
 async def ask_the_bot(type, **kwargs):
     # Attach uid for tracking and send to the bot
     uid = str(uuid.uuid4())
-    await send_to_bot("question", dict(type=type, uid=uid, data=kwargs))
+    await send_to_bot("question", type=type, uid=uid, data=kwargs)
 
     # Wait for a reply for up to 12 seconds
     waited = 0

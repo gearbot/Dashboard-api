@@ -1,17 +1,22 @@
+from Utils.Errors import FailedException, UnauthorizedException, NoReplyException, BadRequestException
+from Utils.Responses import failed_response
+from routers.websocket.question import inbox
+
+socket_by_user = dict()
+socket_by_subscription = dict()
+
 import json
-from datetime import datetime
+from collections import namedtuple
 
 from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketState, WebSocketDisconnect
-from tortoise.exceptions import DoesNotExist
 
-from Utils.DataModels import Dashsession
-
+from Utils import Auth
+from routers.websocket.heartbeat import ping
 
 router = APIRouter()
 
-socket_by_token = dict()
-socket_by_subscription = dict()
+subscription_holder = namedtuple("subscription_holder", "subkey, websocket")
 
 from routers.websocket.auth import hello
 from routers.websocket.subscriptions import unsubscribe, subscribe
@@ -19,7 +24,9 @@ from routers.websocket.subscriptions import unsubscribe, subscribe
 handlers = {
     "hello": hello,
     "subscribe": subscribe,
-    "unsubscribe": unsubscribe
+    "unsubscribe": unsubscribe,
+    "ping": ping,
+    "question": inbox
 }
 
 
@@ -27,16 +34,12 @@ handlers = {
 async def websocket_endpoint(websocket: WebSocket):
     if "token" in websocket.cookies:
         token = websocket.cookies["token"]
-        # validate token, close socket if it's a bad token
-        try:
-            info = await Dashsession.get(id=token)
-        except DoesNotExist:
-            pass  # invalid token pretend it's not there
-        else:
-            # is the token still valid?
-            if info.expires_at > datetime.now():
-                websocket.auth_info = info
-                socket_by_token[token] = websocket
+        info = await Auth.get_token_info(token)
+        if info is not None:
+            websocket.auth_info = info
+            if info.user.id not in socket_by_user:
+                socket_by_user[info.user.id] = list()
+            socket_by_user[info.user.id].append(websocket)
 
     # wrap in try except to make sure we can cleanup no matter what goes wrong
     websocket.active_subscriptions = []
@@ -45,23 +48,36 @@ async def websocket_endpoint(websocket: WebSocket):
         print("Websocket accepted")
         while websocket.application_state == WebSocketState.CONNECTED and websocket.client_state == WebSocketState.CONNECTED:
             try:
-                data = await websocket.receive_text()
-                if data != "":
-                    data = json.loads(data)
+                data = await websocket.receive_json()
+                if data["type"] not in handlers:
+                    await websocket.send_json(dict(type="error", content="Unknown type!"))
+                else:
                     await handlers[data["type"]](websocket, data.get("message", {}))
             except WebSocketDisconnect:
                 break
-        print("websocket closed")
+            except Exception as ex:
+                if isinstance(ex, FailedException):
+                    await websocket.send_json(dict(type="error", content="Seems the bot failed to process your query, please try again later"))
+                elif isinstance(ex, UnauthorizedException):
+                    await websocket.send_json(dict(type="error", content="Access denied!"))
+                elif isinstance(ex, NoReplyException):
+                    await websocket.send_json(dict(type="error", content="Unable to communicate with GearBot, please try again later"))
+                else:
+                    await websocket.send_json(dict(type="error", content="Something went wrong!"))
+                    raise ex
     except Exception as ex:
         await cleanup(websocket)
         raise ex
     else:
         await cleanup(websocket)
-    print("closed")
+    print("Websocket closed")
 
 
 async def cleanup(websocket):
     if hasattr(websocket, "auth_info"):
-        del socket_by_token[websocket.auth_info.id]
+        if len(socket_by_user[websocket.auth_info.user.id]) is 1:
+            del socket_by_user[websocket.auth_info.user.id]
+        else:
+            socket_by_user[websocket.auth_info.user.id].remove(websocket)
     for s in websocket.active_subscriptions:
         await unsubscribe(websocket, dict(channel=s))

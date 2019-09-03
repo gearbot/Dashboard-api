@@ -127,16 +127,7 @@ class PromStatsMiddleware(BaseHTTPMiddleware):
             response: Response = await call_next(request)
         except Exception as error:
             # Generate the appropriate error response
-            if isinstance(error, FailedException):
-                response = failed_response
-            elif isinstance(error, UnauthorizedException):
-                response = unauthorized_response
-            elif isinstance(error, NoReplyException):
-                response = no_reply_response
-            elif isinstance(error, BadRequestException):
-                response = JSONResponse(dict(status="Bad request", errors=error.errors), status_code=400)
-            else:
-                response=JSONResponse(dict(status="Unknown error occurred"), status_code=500)
+
 
             # Try and get the proper error root if we can
             if hasattr(error, "source"):

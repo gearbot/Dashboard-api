@@ -1,53 +1,55 @@
 {
-    "clientID": 99999,
-    "clientSecret": "",
-    "redirect_uri": "",
-
-    "client_url": "",
-    "session_timeout_length": 7,
-    "session_key": "",
-
-    "bot_outage": {
-        "outage_detection": false,
-        "max_bot_outage_warnings": 1,
-        "bot_outage_webhook": "",
-        "bot_outage_pinged_roles": [999999999],
-        "bot_outage_message": {
-            "content": "Gearbot went down! Please look into it!",
-            "embeds": [{
-                "title": "Gearbot Outage Detected",
-                "timestamp": "",
-                "color": "FF0000",
-                "description": "Gearbot is suspected to be down, they haven't responded in over 3 minutes!",
-                "author": {
-                    "name": "Dashboard Gearbot Monitor"
-                },
-                "fields": [
-                    {
-                        "name": "Alert Count",
-                        "value": "{warnings_sent}/{MAX_BOT_OUTAGE_WARNINGS}",
-                        "inline": true
-                    }
-                ]
-            }]
-        }
-    },
-    
-    "redis":{
-        "host": "localhost",
-        "port": "6379"
-    },
-    "cors_orgins": ["http://localhost:8080"],
-    "trusted_hosts": [
-        "localhost", 
-        "localhost:8080",
-        "localhost:5000"
-    ],
-
-    "testing_info": {
-        "user_id": 999999,
-        "session": "",
-        "guild_id": 999999,
-        "guild_mute_role": 99999
-    }
-}                                        }
+	"clientID": 99999,
+	"clientSecret": "",
+	"redirect_uri": "",
+	"client_url": "",
+	"session_timeout_length": 7,
+	"session_key": "",
+	"bot_outage": {
+		"outage_detection": false,
+		"max_bot_outage_warnings": 1,
+		"bot_outage_webhook": "",
+		"bot_outage_pinged_roles": [
+			999999999
+		],
+		"bot_outage_message": {
+			"content": "Gearbot went down! Please look into it!",
+			"embeds": [
+				{
+					"title": "Gearbot Outage Detected",
+					"timestamp": "",
+					"color": "FF0000",
+					"description": "Gearbot is suspected to be down, they haven't responded in over 3 minutes!",
+					"author": {
+						"name": "Dashboard Gearbot Monitor"
+					},
+					"fields": [
+						{
+							"name": "Alert Count",
+							"value": "{warnings_sent}/{MAX_BOT_OUTAGE_WARNINGS}",
+							"inline": true
+						}
+					]
+				}
+			]
+		}
+	},
+	"redis": {
+		"host": "localhost",
+		"port": "6379"
+	},
+	"cors_orgins": [
+		"http://localhost:8080"
+	],
+	"trusted_hosts": [
+		"localhost",
+		"localhost:8080",
+		"localhost:5000"
+	],
+	"testing_info": {
+		"user_id": 999999,
+		"session": "",
+		"guild_id": 999999,
+		"guild_mute_role": 99999
+	}
+}

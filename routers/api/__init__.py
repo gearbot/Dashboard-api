@@ -1,7 +1,7 @@
 import asyncio
 import os
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Cookie
 from starlette.responses import Response
 from starlette.requests import Request
 
@@ -11,7 +11,7 @@ from prometheus_client import multiprocess, CollectorRegistry
 from Utils.Prometheus import active_sessions, notice_session
 from Utils.Responses import successful_action_response, unauthorized_response
 from routers import crowdin, admin
-from routers.api import discord, guilds
+from routers.api import discord
 
 if "prometheus_multiproc_dir" in os.environ:
     prom_multit_mode = True
@@ -66,15 +66,18 @@ async def still_spinning(request: Request):
     return await Redis.is_bot_alive()
 
 @router.get("/whoami")
-async def identify_endpoint(request: Request):
-    return unauthorized_response
-    # Make sure that after a restart we keep the session counter out of the negitive
-    # This will catch sessions that exist but don't hit the login endpoint
-    if active_sessions._value._value <= 0:
-        loop = asyncio.get_running_loop()
-        loop.create_task(notice_session(request.session["user_id"], True))
+async def whoami(request: Request, token: str = Cookie(None)):
+    if token is None:
+        return unauthorized_response
 
-    return await Redis.ask_the_bot("user_info", user_id=request.session["user_id"])
+    info = await Auth.get_token_info(token)
+    if info is None:
+        return unauthorized_response
+
+    return {
+        "id": str(info.user_id),
+        **await Redis.ask_the_bot("user_info", user_id=info.user_id)
+    }
 
 @router.get("/general_info")
 async def general_info():
@@ -82,5 +85,4 @@ async def general_info():
 
 router.include_router(discord.router, prefix="/discord", responses={404: {"description": "Not found"}})
 router.include_router(crowdin.router, prefix="/crowdin-webhook", responses={404: {"description": "Not found"}})
-router.include_router(guilds.router, prefix="/guilds", responses={404: {"description": "Not found"}})
 router.include_router(admin.router, prefix="/admin", responses={404: {"description": "Not found"}})
