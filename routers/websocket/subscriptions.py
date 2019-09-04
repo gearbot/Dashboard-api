@@ -28,15 +28,12 @@ async def stats_sender():
 
 async def stats_send(websocket, subkey):
     global stat_sender
-    stat_sender = asyncio.create_task(stats_sender())
-    asyncio.ensure_future(stat_sender)
+    if stat_sender.cancelled() or stat_sender.done():
+        stat_sender = asyncio.create_task(stats_sender())
     await websocket.send_json({
         "type": "stats",
         "content": await Redis.get_redis().hgetall("botstats")
     })
-    if stat_sender.cancelled() or stat_sender.done():
-        stat_sender = asyncio.create_task(stats_sender())
-        asyncio.ensure_future(stat_sender)
 
 
 async def stats_end():
