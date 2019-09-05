@@ -11,7 +11,7 @@ from collections import namedtuple
 from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketState, WebSocketDisconnect
 
-from Utils import Auth
+from Utils import Auth, Configuration
 from routers.websocket.heartbeat import ping
 
 router = APIRouter()
@@ -32,6 +32,11 @@ handlers = {
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    if "origin" not in websocket.headers or websocket.headers["origin"] not in Configuration.CORS_ORGINS:
+        await websocket.accept()
+        await websocket.send_text("it's too late in the evening to come up with a with a punny denied message so this will do for now")
+        await websocket.close()
+        return
     if "token" in websocket.cookies:
         token = websocket.cookies["token"]
         info = await Auth.get_token_info(token)
