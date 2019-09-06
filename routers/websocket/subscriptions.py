@@ -5,7 +5,6 @@ from collections import namedtuple
 from aiohttp import client
 
 from Utils import Redis
-from Utils.Auth import deauth_user
 from Utils.Configuration import API_LOCATION
 from Utils.Perms import DASH_PERMS
 from routers.websocket import socket_by_subscription, subscription_holder
@@ -54,6 +53,7 @@ async def guilds_start(websocket, subkey):
         async with session_pool.get(f"{API_LOCATION}/users/@me/guilds", headers=headers) as resp:
             guild_list = await resp.json()
             if not isinstance(guild_list, list):
+                from Utils.Auth import deauth_user
                 await deauth_user(websocket.auth_info.user.id)
                 await websocket.auth_info.delete()
                 return False
@@ -144,7 +144,17 @@ async def subscribe(websocket, message):
 
     # subscribe and hit that bell for updates!
     socket_by_subscription[channel].append(subscription_holder(subkey, websocket))
-    websocket.active_subscriptions.append(channel)
+    o = {
+        "channel": channel,
+        "subkey": subkey
+    }
+    if o not in websocket.active_subscriptions:
+        websocket.active_subscriptions.append(o)
+    else:
+        websocket.send_json({
+            "type": "error",
+            "message": f"You are already subscribed to {channel}:{subkey}"
+        })
 
     # NEW CHANNEL HYPE!!!
     if new and handlers[channel].start is not None:
@@ -156,18 +166,22 @@ async def subscribe(websocket, message):
 
 async def unsubscribe(websocket, message):
     channel = message["channel"]
+    subkey = message.get("subkey", None)
 
     # you're no longer interesting, unsubscribed
     target = None
     for holder in socket_by_subscription[channel]:
-        if holder.websocket == websocket:
+        if holder.websocket == websocket and holder.subkey == subkey:
             target = holder
             break
     if target is not None:
         socket_by_subscription[channel].remove(target)
         if handlers[channel].remove is not None:
             await handlers[channel].remove(websocket, target.subkey)
-    websocket.active_subscriptions.remove(channel)
+    websocket.active_subscriptions.remove({
+        "channel": channel,
+        "subkey": subkey
+    })
 
     if len(socket_by_subscription[channel]) is 0:
         # we lost all our subscribers, better delete our channel and retire

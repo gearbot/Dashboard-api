@@ -8,10 +8,12 @@ from starlette.requests import Request
 import prometheus_client as prom
 from prometheus_client import multiprocess, CollectorRegistry
 
+from Utils.Auth import reauth_socket
 from Utils.Prometheus import active_sessions, notice_session
 from Utils.Responses import successful_action_response, unauthorized_response
 from routers import crowdin, admin
 from routers.api import discord
+from routers.websocket import socket_by_user
 
 if "prometheus_multiproc_dir" in os.environ:
     prom_multit_mode = True
@@ -48,15 +50,17 @@ async def get_test(request: Request):
 
 
 @router.get("/logout")
-@Auth.auth_required
 async def logout(request: Request):
-    # If their session expires before they press logout then gauge could be at 0
-    # If it was, then don't bother removing their session again, it already happened
-    if active_sessions._value._value > 0:
-        loop = asyncio.get_running_loop()
-        loop.create_task(notice_session(request.session["user_id"], False))
-
-    request.session.clear()
+    if "token" in request.cookies:
+        token = request.cookies["token"]
+        info = await Auth.get_token_info(token)
+        if info is not None:
+            user_id = info.user.id
+            await info.delete()
+            if user_id in socket_by_user:
+                for socket in socket_by_user[user_id]:
+                    if socket.auth_info.id == token:
+                        await reauth_socket(socket)
 
     return successful_action_response
 

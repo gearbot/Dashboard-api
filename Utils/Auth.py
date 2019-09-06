@@ -11,9 +11,11 @@ from tortoise.exceptions import DoesNotExist
 from Utils.Configuration import CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, API_LOCATION, ALLOWED_USERS
 from Utils.DataModels import Dashsession
 from Utils.Responses import unauthorized_response
+from routers.websocket import socket_by_user
+from routers.websocket.subscriptions import unsubscribe, subscribe
 
 # kill all active sessions by the specified user, used when we detect something fishy is going on
-from routers.websocket import socket_by_user
+
 
 
 async def deauth_user(user_id):
@@ -29,6 +31,12 @@ async def deauth_user(user_id):
                 "type": "hello",
                 "content": {"authorized": False}
             })
+
+async def reauth_socket(websocket):
+    for s in websocket.active_subscriptions:
+        await unsubscribe(websocket, s)
+        await subscribe(websocket, s)
+
 
 # Currently, nothing ever hits this decorator, so it does nothing.
 def auth_required(handler):

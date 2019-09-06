@@ -1,12 +1,12 @@
 from Utils.Errors import FailedException, UnauthorizedException, NoReplyException, BadRequestException
-from Utils.Responses import failed_response
+from collections import namedtuple
 from routers.websocket.question import inbox
 
 socket_by_user = dict()
 socket_by_subscription = dict()
+subscription_holder = namedtuple("subscription_holder", "subkey, websocket")
 
-import json
-from collections import namedtuple
+
 
 from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketState, WebSocketDisconnect
@@ -16,7 +16,7 @@ from routers.websocket.heartbeat import ping
 
 router = APIRouter()
 
-subscription_holder = namedtuple("subscription_holder", "subkey, websocket")
+
 
 from routers.websocket.auth import hello
 from routers.websocket.subscriptions import unsubscribe, subscribe
@@ -85,4 +85,4 @@ async def cleanup(websocket):
         else:
             socket_by_user[websocket.auth_info.user.id].remove(websocket)
     for s in websocket.active_subscriptions:
-        await unsubscribe(websocket, dict(channel=s))
+        await unsubscribe(websocket, s)
