@@ -51,5 +51,6 @@
 		"session": "",
 		"guild_id": 999999,
 		"guild_mute_role": 99999
-	}
+	},
+	"sentry_dsn": ""
 }

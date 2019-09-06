@@ -29,3 +29,5 @@ TRUSTED_HOSTS: list = config["trusted_hosts"]
 DB_URL = config['db_url']
 
 UPDATE_KEY = config['update_key']
+
+DSN = config.get("sentry_dsn", "")

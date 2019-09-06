@@ -2,18 +2,23 @@ import asyncio
 import time
 import sys
 
+import sentry_sdk
 from fastapi import FastAPI
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from tortoise import Tortoise
 
-from Utils.Configuration import DB_URL
+from Utils.Configuration import DB_URL, DSN
 from Utils.Prometheus import session_monitor
 from Utils import Configuration, Redis
 from routers import api, websocket
 
 app = FastAPI()
 
+if DSN != "":
+    sentry_sdk.init(dsn=DSN)
+    app.add_middleware(SentryAsgiMiddleware)
 
 @app.on_event("startup")
 async def session_init():
