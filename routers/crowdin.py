@@ -25,19 +25,15 @@ async def crowdin_webhook(info: Exported):
     if info.file != "/bot/commands.json": return
     print(f"Crowdin event recieved: {info.event} for file {info.file} in {info.language}")
     link = Redis.get_redis()
-    await link.publish_json("dash-bot-messages", 
-        dict(type="crowdin_webhook",
-            info=dict(
-                event=info.event,
-                project=info.project,
-                project_id=info.project_id,
-                language=info.language,
-                source_string_id=info.source_string_id,
-                old_translation_id=info.old_translation_id,
-                new_translation_id=info.new_translation_id,
-                user=info.user, user_id=info.user_id,
-                file_id=info.file_id, 
-                file=info.file
-                )
-            )
-        )
+    await Redis.send_to_bot("crowdin_webhook",
+                            event=info.event,
+                            project=info.project,
+                            project_id=info.project_id,
+                            language=info.language,
+                            source_string_id=info.source_string_id,
+                            old_translation_id=info.old_translation_id,
+                            new_translation_id=info.new_translation_id,
+                            user=info.user, user_id=info.user_id,
+                            file_id=info.file_id,
+                            file=info.file
+                            )
