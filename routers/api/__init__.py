@@ -38,16 +38,6 @@ async def get_prom_metrics():
         metric_data = prom.generate_latest(prom.REGISTRY).decode("utf-8")
     return Response(metric_data, media_type="text/plain")
 
-@router.get("/test")
-async def test(request: Request):
-    request.session["test"] = "testing"
-    return {"status": "TESTING"}
-
-
-@router.get("/test2")
-async def get_test(request: Request):
-    return {"test": request.session["test"]}
-
 
 @router.get("/logout")
 async def logout(request: Request):
