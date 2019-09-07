@@ -16,6 +16,7 @@ class Body(BaseModel):
 
 @router.post("/update")
 async def update(request: Request, body: Body):
-    if body.key != UPDATE_KEY:
+    # Disable endpoint by default. Re-enable by generating a update key in the config
+    if UPDATE_KEY == None or body.key != UPDATE_KEY:
         return unauthorized_response
     await Redis.send_to_bot("update", type=body.type)
