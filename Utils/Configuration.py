@@ -26,8 +26,9 @@ else:
 CORS_ORGINS: list = config["cors_orgins"]
 TRUSTED_HOSTS: list = config["trusted_hosts"]
 
-DB_URL = config['db_url']
+DB_URL = config["db_url"]
 
-UPDATE_KEY = config['update_key']
+UPDATE_KEY = config["update_key"]
+if UPDATE_KEY == "": UPDATE_KEY = None
 
 DSN = config.get("sentry_dsn", "")
