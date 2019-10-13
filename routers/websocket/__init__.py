@@ -83,5 +83,5 @@ async def cleanup(websocket):
             del socket_by_user[websocket.auth_info.user.id]
         else:
             socket_by_user[websocket.auth_info.user.id].remove(websocket)
-    for channel, subkey in websocket.active_subscriptions.copy().items():
-        await unsubscribe(websocket, dict(channel=channel, subkey=subkey))
+    for channel in websocket.active_subscriptions.copy().keys():
+        await unsubscribe(websocket, dict(channel=channel))

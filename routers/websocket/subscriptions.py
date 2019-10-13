@@ -162,7 +162,6 @@ async def subscribe(websocket, message):
 
 async def unsubscribe(websocket, message):
     channel = message["channel"]
-    subkey = message.get("subkey", None)
 
     # you're no longer interesting, unsubscribed
 
