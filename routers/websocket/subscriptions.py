@@ -147,9 +147,9 @@ async def subscribe(websocket, message):
         socket_by_subscription[channel].append(websocket)
         websocket.active_subscriptions[channel] = str(subkey)
     else:
-        websocket.send_json({
+        await websocket.send_json({
             "type": "error",
-            "message": f"You are already subscribed to {channel}"
+            "content": f"You are already subscribed to {channel}"
         })
 
     # NEW CHANNEL HYPE!!!
