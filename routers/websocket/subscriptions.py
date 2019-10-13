@@ -7,7 +7,7 @@ from aiohttp import client
 from Utils import Redis
 from Utils.Configuration import API_LOCATION
 from Utils.Perms import DASH_PERMS
-from routers.websocket import socket_by_subscription, subscription_holder
+from routers.websocket import socket_by_subscription
 
 # stats handlers
 stat_sender = None
@@ -143,17 +143,13 @@ async def subscribe(websocket, message):
         new = True
 
     # subscribe and hit that bell for updates!
-    socket_by_subscription[channel].append(subscription_holder(subkey, websocket))
-    o = {
-        "channel": channel,
-        "subkey": subkey
-    }
-    if o not in websocket.active_subscriptions:
-        websocket.active_subscriptions.append(o)
+    if channel not in websocket.active_subscriptions:
+        socket_by_subscription[channel].append(websocket)
+        websocket.active_subscriptions[channel] = str(subkey)
     else:
         websocket.send_json({
             "type": "error",
-            "message": f"You are already subscribed to {channel}:{subkey}"
+            "message": f"You are already subscribed to {channel}"
         })
 
     # NEW CHANNEL HYPE!!!
@@ -169,19 +165,11 @@ async def unsubscribe(websocket, message):
     subkey = message.get("subkey", None)
 
     # you're no longer interesting, unsubscribed
-    target = None
-    for holder in socket_by_subscription[channel]:
-        if holder.websocket == websocket and holder.subkey == subkey:
-            target = holder
-            break
-    if target is not None:
-        socket_by_subscription[channel].remove(target)
-        if handlers[channel].remove is not None:
-            await handlers[channel].remove(websocket, target.subkey)
-    websocket.active_subscriptions.remove({
-        "channel": channel,
-        "subkey": subkey
-    })
+
+    socket_by_subscription[channel].remove(websocket)
+    if handlers[channel].remove is not None:
+        await handlers[channel].remove(websocket, websocket.active_subscriptions[channel])
+    del websocket.active_subscriptions[channel]
 
     if len(socket_by_subscription[channel]) is 0:
         # we lost all our subscribers, better delete our channel and retire
@@ -192,7 +180,7 @@ async def unsubscribe(websocket, message):
 
 async def send_to_subscribers(channel, subkey=None, uid=None, **kwargs):
     if channel in socket_by_subscription:
-        for holder in socket_by_subscription[channel]:
-            auth_info = getattr(holder.websocket, "auth_info", None)
-            if holder.subkey == subkey and (uid is None or (auth_info is not None and auth_info.user_id == int(uid))):
-                await holder.websocket.send_json(dict(type=channel, content=kwargs))
+        for socket in socket_by_subscription[channel]:
+            auth_info = getattr(socket, "auth_info", None)
+            if socket.active_subscriptions[channel] == str(subkey) and (uid is None or (auth_info is not None and auth_info.user_id == int(uid))):
+                await socket.send_json(dict(type=channel, content=kwargs))

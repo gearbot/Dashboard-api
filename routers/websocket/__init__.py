@@ -4,7 +4,6 @@ from routers.websocket.question import inbox
 
 socket_by_user = dict()
 socket_by_subscription = dict()
-subscription_holder = namedtuple("subscription_holder", "subkey, websocket")
 
 
 
@@ -47,7 +46,7 @@ async def websocket_endpoint(websocket: WebSocket):
             socket_by_user[info.user.id].append(websocket)
 
     # wrap in try except to make sure we can cleanup no matter what goes wrong
-    websocket.active_subscriptions = []
+    websocket.active_subscriptions = dict()
     try:
         await websocket.accept()
         print("Websocket accepted")
