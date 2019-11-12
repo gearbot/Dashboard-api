@@ -27,7 +27,7 @@ async def inf_search(websocket, question=None, guild_id=None, page=1, order_by=N
         return dict(error=True, message=str(error))
 
     reply = {
-        "count": count,
+        "infraction_count": count,
         "infraction_list": [
             {
                 "id": i.id,

@@ -1,7 +1,4 @@
-import asyncio
-
 from aiohttp import client
-from Utils.Configuration import API_LOCATION
 from Utils import Redis
 from Utils.RateLimits import make_request
 from routers.websocket.infractions import inf_search
