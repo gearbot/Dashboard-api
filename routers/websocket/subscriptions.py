@@ -43,38 +43,6 @@ async def guilds_start(websocket, subkey):
     # tell the bot to send this user's guilds
     await Redis.send_to_bot("user_guilds", user_id=subkey)
 
-    # get non gearbot servers
-    headers = {
-        "Authorization": f"Bearer {websocket.auth_info.user.api_token}"
-    }
-
-    async with client.ClientSession() as session_pool:
-
-        async with session_pool.get(f"{API_LOCATION}/users/@me/guilds", headers=headers) as resp:
-            guild_list = await resp.json()
-            if not isinstance(guild_list, list):
-                from Utils.Auth import deauth_user
-                await deauth_user(websocket.auth_info.user.id)
-                await websocket.auth_info.delete()
-                return False
-            to_send = dict()
-            for guild in guild_list:
-                if guild["owner"] or guild["permissions"] & 32 == 32:
-                    to_send[str(guild["id"])] = {
-                        "id": str(guild["id"]),
-                        "name": str(guild["name"]),
-                        "icon": guild["icon"]
-                    }
-            await websocket.send_json({
-                "type": "guilds",
-                "content": {
-                    "type": "all_guilds",
-                    "guilds": to_send
-                }
-            })
-
-    await session_pool.close()
-
 
 def is_last_subkey(channel, subkey):
     for holder in socket_by_subscription[channel]:
@@ -119,7 +87,8 @@ handlers = {
     "stats": ChannelHandlers(always_allowed, stats_start, stats_send, None, stats_end),
     "guilds": ChannelHandlers(user_id_check, None, guilds_start, guilds_end, None),
     "guild_info": ChannelHandlers(needs_perm(DASH_PERMS.ACCESS), None, guild_info_start, guild_info_end, None),
-    "guild_settings": ChannelHandlers(needs_perm(DASH_PERMS.VIEW_CONFIG), None, None, None, None)
+    "guild_settings": ChannelHandlers(needs_perm(DASH_PERMS.VIEW_CONFIG), None, None, None, None),
+    "guild_infractions": ChannelHandlers(needs_perm(DASH_PERMS.VIEW_INFRACTIONS), None, None, None, None)
     # TODO: acutally make this do something
 }
 

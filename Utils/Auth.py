@@ -33,9 +33,9 @@ async def deauth_user(user_id):
             })
 
 async def reauth_socket(websocket):
-    for s in websocket.active_subscriptions:
-        await unsubscribe(websocket, s)
-        await subscribe(websocket, s)
+    for k, v in websocket.active_subscriptions.items():
+        await unsubscribe(websocket, dict(channel=k, subkey=v))
+        await subscribe(websocket, dict(channel=k, subkey=v))
 
 
 # Currently, nothing ever hits this decorator, so it does nothing.

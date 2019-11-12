@@ -11,6 +11,7 @@ from Utils.Errors import FailedException, NoReplyException, UnauthorizedExceptio
 from Utils.Prometheus import redis_message_count, bot_response_latency
 from Utils.Configuration import OUTAGE_DETECTION
 from Utils.Configuration import MAX_BOT_OUTAGE_WARNINGS, BOT_OUTAGE_WEBHOOK, BOT_OUTAGE_MESSAGE, BOT_OUTAGE_PINGED_ROLES
+from routers.websocket import socket_by_uid
 from routers.websocket.subscriptions import send_to_subscribers
 
 bot_alive = False
@@ -64,13 +65,17 @@ async def guild_update(message):
     guild_id, user_id = get_info(message)
     await send_to_subscribers("guild_info", guild_id, user_id, **message["info"])
 
+async def usernames(message):
+    if message["uid"] in socket_by_uid:
+        await socket_by_uid[message["uid"]].send_json(dict(type="usernames", content=message["names"]))
 
 handlers = dict(
     cache_info=cache_info,
     reply=reply,
     guild_add=guild_add,
     guild_remove=guild_remove,
-    guild_update=guild_update
+    guild_update=guild_update,
+usernames=usernames
 )
 
 
@@ -192,24 +197,23 @@ async def send_to_bot(t, **kwargs):
     await message_pool.publish_json("dash-bot-messages", dict(type=t, message=kwargs))
 
 
-async def ask_the_bot(type, **kwargs):
+async def ask_the_bot(type, timeout=12, **kwargs, ):
     # Attach uid for tracking and send to the bot
     uid = str(uuid.uuid4())
     await send_to_bot("question", type=type, uid=uid, data=kwargs)
 
     # Wait for a reply for up to 12 seconds
     waited = 0
-    while uid not in replies:
-        await asyncio.sleep(0.1)
-        waited += 1
-        if waited >= 120:
-            raise NoReplyException(
-                source="Redis",
-                details="Gearbot didn't reply after 12 seconds, Something must of gone wrong!",
-            )
+    try:
+        r = await asyncio.wait_for(retrieve_answer(uid), timeout)
+    except TimeoutError:
+        raise NoReplyException(
+            source="Redis",
+            details="Gearbot didn't reply after 12 seconds, Something must of gone wrong!",
+        )
 
-    r = replies[uid]
-    del replies[uid]
+
+
 
     if r["state"] == "Failed":
         raise FailedException(source="Gearbot")
@@ -219,3 +223,11 @@ async def ask_the_bot(type, **kwargs):
         raise BadRequestException(source="User", errors=r["errors"])
 
     return r["reply"]
+
+
+async def retrieve_answer(uid):
+    while uid not in replies:
+        await asyncio.sleep(0.1)
+    r = replies[uid]
+    del replies[uid]
+    return r

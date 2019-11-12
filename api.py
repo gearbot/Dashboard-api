@@ -34,7 +34,7 @@ async def session_init():
         modules={'models': ['Utils.DataModels']}
     )
     # Generate the schema
-    # await Tortoise.generate_schemas()
+    await Tortoise.generate_schemas()
     print("Database connection established")
 
     await Redis.cache()
@@ -56,6 +56,9 @@ async def add_process_time_header(request: Request, call_next):
     process_time = f() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
+
+
+
 
 
 # app.add_middleware(SessionMiddleware, max_age=Configuration.SESSION_TIMEOUT_LEN, secret_key=Configuration.SESSION_KEY)
