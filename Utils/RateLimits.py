@@ -1,5 +1,7 @@
 import asyncio
 
+from Utils.Configuration import API_LOCATION
+
 bucket_by_route = dict()
 bucket_by_id = dict()
 global_lock = asyncio.Event()
@@ -53,7 +55,7 @@ async def make_request(pool, method, route, *route_args, **request_kwargs):
     bucket = bucket_by_route[route]
     await bucket.acquire()
 
-    async with getattr(pool, method)(route.format(*route_args), **request_kwargs) as response:
+    async with getattr(pool, method)(API_LOCATION + route.format(*route_args), **request_kwargs) as response:
         # handle rate limits
         if response.status == 429:
             print("RATE LIMIT HIT!")
