@@ -1,11 +1,19 @@
 import asyncio
+import time
 
 from Utils.Configuration import API_LOCATION
 
-bucket_by_route = dict()
-bucket_by_id = dict()
-global_lock = asyncio.Event()
-globally_locked = False
+base_buckets = dict()
+bucket_wrappers = dict()
+cleaner = None
+
+
+class BucketWrapper:
+    def __init__(self) -> None:
+        self.bucket_by_route = dict()
+        self.global_lock = asyncio.Event()
+        self.globally_locked = False
+        self.last_used = time.time()
 
 
 class Bucket:
@@ -15,6 +23,7 @@ class Bucket:
         self._sem = asyncio.Semaphore()
         self._scheduled_release = False
         self._release_delay = 10
+        self.last_used = time.time()
 
     async def acquire(self):
         await self._sem.acquire()
@@ -25,12 +34,13 @@ class Bucket:
         remaining = int(headers["X-RateLimit-Remaining"])
         self._release_delay = headers["X-RateLimit-Reset-After"]
         while remaining > self._remaining:
-            self._sem.release() # we have more then we thought, release some
+            self._sem.release()  # we have more then we thought, release some
         while self._remaining < remaining:
-            asyncio.ensure_future(self._sem.acquire()) # yikes, we used more then we thought, waste a few
+            asyncio.ensure_future(self._sem.acquire())  # yikes, we used more then we thought, waste a few
         if not self._scheduled_release:
             self._scheduled_release = True
             asyncio.ensure_future(self._reset_after(float(headers["X-RateLimit-Reset-After"])))
+        self.last_used = time.time()
 
     def _release(self):
         self._remaining += 1
@@ -42,17 +52,28 @@ class Bucket:
             self._release()
         self._scheduled_release = False
 
+    def clone(self):
+        bucket = Bucket()
+        bucket._remaining = self._remaining
+        bucket._limit = self._limit
+        return bucket
 
-async def make_request(pool, method, route, *route_args, **request_kwargs):
-    global globally_locked
-    if globally_locked:  # we're hitting global limits, wait for them to clear first
-        await global_lock.wait()
 
-    discovered = route in bucket_by_route
+async def make_request(pool, method, route, wrapper_identifier="default", *route_args, **request_kwargs):
+    if wrapper_identifier not in bucket_wrappers:
+        bucket_wrappers[wrapper_identifier] = BucketWrapper()
+    wrapper = bucket_wrappers[wrapper_identifier]
+    wrapper.last_used = time.time()
+
+    if wrapper.globally_locked:  # we're hitting global limits, wait for them to clear first
+        await wrapper.global_lock.wait()
+
+    discovered = route in wrapper.bucket_by_route
     if not discovered:
-        bucket_by_route[route] = Bucket()  # temp give it a 1-1-10 bucket so to block things while we discover the route
+        wrapper.bucket_by_route[
+            route] = Bucket()  # temp give it a 1-1-10 bucket so to block things while we discover the route
 
-    bucket = bucket_by_route[route]
+    bucket = wrapper.bucket_by_route[route]
     await bucket.acquire()
 
     async with getattr(pool, method)(API_LOCATION + route.format(*route_args), **request_kwargs) as response:
@@ -61,34 +82,46 @@ async def make_request(pool, method, route, *route_args, **request_kwargs):
             print("RATE LIMIT HIT!")
             info = await response.json()
             if info["global"]:
-                globally_locked = True
+                wrapper.globally_locked = True
                 await asyncio.sleep(info["retry_after"] / 1000)
-                globally_locked = False
-                global_lock.set()
-                await asyncio.sleep(0.1) # not 100% sure this is needed
-                global_lock.clear()
+                wrapper.globally_locked = False
+                wrapper.global_lock.set()
+                await asyncio.sleep(0.1)  # not 100% sure this is needed
+                wrapper.global_lock.clear()
             else:
-                #not global, our bucket must be wrong
+                # not global, our bucket must be wrong
                 if not discovered:
                     bucket_id = route.headers["X-RateLimit-Bucket"]
-                    if bucket_id in bucket_by_id:
+                    if bucket_id in base_buckets:
                         # we already had a bucket, use it for the route in the future
-                        bucket_by_route[route] = bucket_by_id[bucket_by_id]
-                        bucket_by_route[route].set_limitse(response.headers)
+                        wrapper.bucket_by_route[route] = base_buckets[bucket_id].clone()
+                        wrapper.bucket_by_route[route].set_limitse(response.headers)
                     else:
-                        bucket_by_id[bucket_id] = bucket
-                bucket.set_limits(response.headers)
+                        bucket.set_limits(response.headers)
+                        base_buckets[bucket_id] = bucket.clone()
+                else:
+                    bucket.set_limits(response.headers)
                 await asyncio.sleep(info["retry_after"] / 1000)
                 return await make_request(pool, method, route, *route_args, **request_kwargs)
         else:
             if not discovered:
                 bucket_id = response.headers["X-RateLimit-Bucket"]
-                if bucket_id in bucket_by_id:
+                if bucket_id in base_buckets:
                     # we already had a bucket, use it for the route in the future
-                    bucket_by_route[route] = bucket_by_id[bucket_by_id]
-                    bucket_by_route[route].set_limits(response.headers)
+                    wrapper.bucket_by_route[route] = base_buckets[bucket_id].clone()
+                    wrapper.bucket_by_route[route].set_limits(response.headers)
                 else:
-                    bucket_by_id[bucket_id] = bucket
-            bucket.set_limits(response.headers) # if we just discovered it, still set limits on this bucket in case we have others waiting on this undiscovered bucket
+                    base_buckets[bucket_id] = bucket.clone()
+            # if we just discovered it, still set limits on this bucket in case we have others waiting on this undiscovered bucket
+            bucket.set_limits(response.headers)
         return await response.json()
 
+
+async def cleaner_task():
+    global bucket_wrappers
+    while True:
+        await asyncio.sleep(900)
+        limit = time.time() - 600
+        bucket_wrappers = {i: wrapper for i, wrapper in bucket_wrappers.items() if wrapper.last_used > limit}
+        for bucket_wrapper in bucket_wrappers.values():
+            bucket_wrapper.bucket_by_route = {i: bucket for i, bucket in bucket_wrapper.bucket_by_route.items() if bucket.last_used > limit}

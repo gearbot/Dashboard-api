@@ -12,6 +12,7 @@ from tortoise import Tortoise
 from Utils.Configuration import DB_URL, DSN
 from Utils.Prometheus import session_monitor
 from Utils import Configuration, Redis
+from Utils.RateLimits import cleaner_task
 from routers import api, websocket
 
 app = FastAPI()
@@ -26,8 +27,7 @@ async def session_init():
     print("Redis connections initialized")
 
     loop = asyncio.get_running_loop()
-    loop.create_task(session_monitor())
-    print("Session monitor initialized")
+    loop.create_task(cleaner_task())
 
     await Tortoise.init(
         db_url=DB_URL,

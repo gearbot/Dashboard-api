@@ -36,7 +36,7 @@ async def get_user_guilds_all(websocket, **kwargs):
         "X-RateLimit-Precision": "millisecond", "Content-Type": "application/json"
     }
     async with client.ClientSession() as session_pool:
-        guild_list = await make_request(session_pool, "get", "users/@me/guilds", headers=headers)
+        guild_list = await make_request(session_pool, "get", "users/@me/guilds", wrapper_identifier=auth_info.user_id, headers=headers)
         all_guilds = dict()
         for guild in guild_list:
             if guild["owner"] or guild["permissions"] & 32 == 32:
