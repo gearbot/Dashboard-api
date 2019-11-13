@@ -14,7 +14,6 @@ from Utils import Auth
 from secrets import token_urlsafe
 
 from Utils.DataModels import Dashsession, UserInfo
-from Utils.Prometheus import notice_session
 from Utils.Responses import bad_oauth_response
 
 router = APIRouter()

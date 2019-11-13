@@ -3,7 +3,7 @@ from starlette.responses import Response
 
 from api import app
 
-from Utils.Configuration import config, CLIENT_URL
+from Utils.Configuration import config
 from Utils.Responses import unauthorized_response
 
 # Setup for tests...

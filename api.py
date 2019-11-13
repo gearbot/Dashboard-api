@@ -38,6 +38,7 @@ async def session_init():
     print("Database connection established")
 
     await Redis.cache()
+    print("Startup complete")
 
 # This currently breaks closing Redis when running inside pytest, will need a better fix
 @app.on_event("shutdown")

@@ -5,6 +5,7 @@ from datetime import datetime
 
 import aioredis
 from aiohttp import client
+from concurrent.futures import TimeoutError
 
 from Utils.Configuration import REDIS_ADDRESS
 from Utils.Errors import FailedException, NoReplyException, UnauthorizedException, BadRequestException
