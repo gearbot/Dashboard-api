@@ -45,8 +45,8 @@ async def guilds_start(websocket, subkey):
 
 
 def is_last_subkey(channel, subkey):
-    for holder in socket_by_subscription[channel]:
-        if holder.subkey == subkey:
+    for socket in socket_by_subscription[channel]:
+        if channel in socket.active_subscriptions and socket.active_subscriptions[channel] == subkey:
             return False
     return True
 
