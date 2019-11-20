@@ -12,10 +12,10 @@ def field_concat(prefix):
 
 
 CONVERTERS = {
-    "GREATER_THEN": field_concat("gt"),
-    "GREATER_OR_EQUAL_THEN": field_concat("gte"),
-    "SMALLER_THEN": field_concat("lt"),
-    "SMALLER_OR_EQUAL_THEN": field_concat("lte"),
+    "GREATER_THAN": field_concat("gt"),
+    "GREATER_OR_EQUAL_THAN": field_concat("gte"),
+    "SMALLER_THAN": field_concat("lt"),
+    "SMALLER_OR_EQUAL_THAN": field_concat("lte"),
     "EQUALS": lambda f: f
 }
 
