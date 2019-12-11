@@ -2,7 +2,7 @@ import uuid
 
 from Utils.Errors import FailedException, UnauthorizedException, NoReplyException
 from routers.websocket.question import inbox, inbox_api
-from routers.websocket.usernames import get_usernames
+from routers.websocket.usernames import get_users_info
 
 socket_by_user = dict()
 socket_by_subscription = dict()
@@ -30,7 +30,7 @@ handlers = {
     "ping": ping,
     "question": inbox,
     "question_api": inbox_api,
-    "get_usernames": get_usernames
+    "get_users_info": get_users_info
 }
 
 

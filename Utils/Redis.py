@@ -66,9 +66,11 @@ async def guild_update(message):
     guild_id, user_id = get_info(message)
     await send_to_subscribers("guild_info", guild_id, user_id, **message["info"])
 
-async def usernames(message):
+
+async def users_info(message):
     if message["uid"] in socket_by_uid:
-        await socket_by_uid[message["uid"]].send_json(dict(type="usernames", content=message["names"]))
+        await socket_by_uid[message["uid"]].send_json(dict(type="users_info", content=message["info"]))
+
 
 handlers = dict(
     cache_info=cache_info,
@@ -76,7 +78,7 @@ handlers = dict(
     guild_add=guild_add,
     guild_remove=guild_remove,
     guild_update=guild_update,
-usernames=usernames
+    users_info=users_info
 )
 
 
@@ -212,9 +214,6 @@ async def ask_the_bot(type, timeout=12, **kwargs, ):
             source="Redis",
             details="Gearbot didn't reply after 12 seconds, Something must of gone wrong!",
         )
-
-
-
 
     if r["state"] == "Failed":
         raise FailedException(source="Gearbot")
