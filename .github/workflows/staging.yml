@@ -5,7 +5,7 @@ on:
 name: Deploy staging API
 jobs:
   deploy:
-    name: Deploy API
+    name: Deploy staging API
     runs-on: ubuntu-latest
     steps:
     - name: Executing remote ssh commands
