@@ -1,0 +1,17 @@
+on:
+  push:
+    branches:
+      - master
+name: Deploy staging API
+jobs:
+  deploy:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    steps:
+    - name: Executing remote ssh commands
+      uses: AEnterprise/execute-ssh@master
+      env:
+        DEPLOY_KEY: ${{ secrets.KEY }}
+        SERVER_CONNECTION_STRING: ${{ secrets.SERVER_CONNECTION_STRING }}
+        COMMAND: "cd ~/staging/Dashboard-api && /usr/bin/git pull && sudo /bin/systemctl restart dashboard_staging.service && sleep 60s && /bin/systemctl is-active --quiet dashboard_staging.service"
+        PORT: ${{ secrets.PORT }}
