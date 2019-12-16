@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - master
+      - dev
 name: Deploy staging API
 jobs:
   deploy:
