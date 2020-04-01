@@ -6,4 +6,4 @@ prometheus_client==0.7.1
 pytest==5.3.1
 tortoise-orm==0.15.1
 aiomysql==0.0.20
-sentry-sdk==0.13.2
+sentry-sdk==0.14.3
