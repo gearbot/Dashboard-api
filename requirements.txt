@@ -4,7 +4,7 @@ aioredis==1.3.0
 aiohttp==3.6.1
 prometheus_client==0.7.1
 pytest==5.2.1
-tortoise-orm==0.13.12
+tortoise-orm==0.15.23
 aiomysql==0.0.20
 sentry-sdk==0.12.3
 starlette>=0.13.5 # not directly required, pinned by Snyk to avoid a vulnerability
